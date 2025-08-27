@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تأكيد البريد الإلكتروني - فينانزا</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #7F56D9, #9E77ED, #C7A6FD);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            direction: rtl;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            opacity: 0.8;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        
+        .status {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        
+        .success {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .loading {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .button {
+            background: white;
+            color: #7F56D9;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">💰</div>
+        <h1 class="title">تأكيد البريد الإلكتروني</h1>
+        <p class="subtitle">فينانزا - التطبيق الأول في تونس لإدارة الأموال الشخصية</p>
+        
+        <div id="status" class="status loading">
+            <div class="spinner"></div>
+            جاري تأكيد بريدك الإلكتروني...
+        </div>
+        
+        <div id="content" style="display: none;">
+            <!-- Content will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const supabaseUrl = 'https://fymmhgwzobdcihjwwkl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5bW1oZ3d6b2JkY2loanF3a2wiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczNzU3MTkyMSwiZXhwIjoyMDUzMTQ3OTIxfQ.pKMYKQOBJZGxzm8Z8JYqCJnLp_I0zT3vyiZbLcH0tpk';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        async function handleEmailConfirmation() {
+            try {
+                // Get URL parameters
+                const urlParams = new URLSearchParams(window.location.hash.substring(1));
+                const accessToken = urlParams.get('access_token');
+                const refreshToken = urlParams.get('refresh_token');
+                const tokenType = urlParams.get('token_type');
+                const type = urlParams.get('type');
+
+                console.log('Confirmation parameters:', { accessToken: !!accessToken, type });
+
+                if (!accessToken || type !== 'signup') {
+                    throw new Error('رابط تأكيد غير صحيح');
+                }
+
+                // Set the session using the tokens from URL
+                const { data, error } = await supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                if (data.user) {
+                    console.log('Email confirmed successfully:', data.user.id);
+                    
+                    // Create or update user profile
+                    const { error: profileError } = await supabase
+                        .from('users')
+                        .upsert({
+                            id: data.user.id,
+                            email: data.user.email,
+                            full_name: data.user.user_metadata?.full_name || '',
+                            preferred_language: 'tn',
+                            preferred_currency: 'TND',
+                            cultural_preferences: {}
+                        });
+
+                    if (profileError) {
+                        console.error('Profile creation error:', profileError);
+                    }
+
+                    showSuccess(data.user.email);
+                } else {
+                    throw new Error('لم يتم العثور على بيانات المستخدم');
+                }
+
+            } catch (error) {
+                console.error('Email confirmation error:', error);
+                showError(error.message);
+            }
+        }
+
+        function showSuccess(email) {
+            document.getElementById('status').innerHTML = `
+                <div class="status success">
+                    <div style="font-size: 40px; margin-bottom: 15px;">✅</div>
+                    <strong>تم تأكيد بريدك الإلكتروني بنجاح!</strong>
+                    <div style="margin-top: 10px; opacity: 0.8;">${email}</div>
+                </div>
+            `;
+            
+            document.getElementById('content').innerHTML = `
+                <div class="instructions">
+                    <h3 style="margin-bottom: 15px;">✨ مبروك! حسابك جاهز</h3>
+                    <p style="margin-bottom: 15px;">تم تأكيد بريدك الإلكتروني بنجاح. يمكنك الآن العودة إلى تطبيق فينانزا لمتابعة إعداد حسابك.</p>
+                    
+                    <div style="margin: 20px 0;">
+                        <strong>الخطوات التالية:</strong>
+                        <ol style="text-align: right; margin-top: 10px;">
+                            <li>افتح تطبيق فينانزا على هاتفك</li>
+                            <li>سجل الدخول باستخدام بريدك الإلكتروني</li>
+                            <li>أكمل إعداد ملفك الشخصي</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <a href="https://finanza.tn" class="button">الذهاب إلى الموقع</a>
+                    <button onclick="window.close()" class="button">إغلاق هذه النافذة</button>
+                </div>
+            `;
+            
+            document.getElementById('content').style.display = 'block';
+        }
+
+        function showError(message) {
+            document.getElementById('status').innerHTML = `
+                <div class="status error">
+                    <div style="font-size: 40px; margin-bottom: 15px;">❌</div>
+                    <strong>فشل في تأكيد البريد الإلكتروني</strong>
+                    <div style="margin-top: 10px; opacity: 0.8;">${message}</div>
+                </div>
+            `;
+            
+            document.getElementById('content').innerHTML = `
+                <div class="instructions">
+                    <h3 style="margin-bottom: 15px;">ماذا تفعل الآن؟</h3>
+                    <p style="margin-bottom: 15px;">إذا كان الرابط منتهي الصلاحية أو لا يعمل:</p>
+                    
+                    <ol style="text-align: right; margin-top: 10px;">
+                        <li>افتح تطبيق فينانزا</li>
+                        <li>جرب تسجيل الدخول بنفس البريد الإلكتروني</li>
+                        <li>إذا لم يعمل، اطلب رابط تأكيد جديد</li>
+                    </ol>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button onclick="location.reload()" class="button">إعادة المحاولة</button>
+                    <button onclick="window.close()" class="button">إغلاق النافذة</button>
+                </div>
+            `;
+            
+            document.getElementById('content').style.display = 'block';
+        }
+
+        // Start the confirmation process when page loads
+        window.addEventListener('load', handleEmailConfirmation);
+    </script>
+</body>
+</html>

@@ -1,4 +1,11 @@
-# 🧠 Finanza Knowledge Base
+# 🧠 Finanza K### 🎯 **Daily Development Essentials**
+- **[🚀 Developer Quick Start](./quick-reference/developer-quickstart.md)** - Get coding in 5 minutes
+- **[🔧 Environment Setup](./quick-reference/environment-checklist.md)** - One-command setup verification  
+- **[📱 Navigation Guide](./quick-reference/navigation-guide.md)** - 5-tab structure and planning sub-navigation
+- **[🗄️ Supabase Reference](./quick-reference/supabase-reference.md)** - Database queries and operations
+- **[📚 Component Library](./quick-reference/component-cheatsheet.md)** - All UI components at a glance
+- **[🗄️ Database Patterns](./quick-reference/database-patterns.md)** - Common queries and operations
+- **[🌍 i18n Quick Guide](./quick-reference/i18n-quickstart.md)** - Add translations instantlye Base
 
 > **Your complete development companion** - Everything you need to build, maintain, and scale the Finanza app faster and more efficiently.
 
@@ -15,7 +22,8 @@
 ### 🎯 **Daily Development Essentials**
 - **[🚀 Developer Quick Start](./quick-reference/developer-quickstart.md)** - Get coding in 5 minutes
 - **[🔧 Environment Setup](./quick-reference/environment-checklist.md)** - One-command setup verification  
-- **[📚 Component Library](./quick-reference/component-cheatsheet.md)** - All UI components at a glance
+- **[� Navigation Guide](./quick-reference/navigation-guide.md)** - 5-tab structure and planning sub-navigation
+- **[�📚 Component Library](./quick-reference/component-cheatsheet.md)** - All UI components at a glance
 - **[🗄️ Database Patterns](./quick-reference/database-patterns.md)** - Common queries and operations
 - **[🌍 i18n Quick Guide](./quick-reference/i18n-quickstart.md)** - Add translations instantly
 
@@ -47,6 +55,9 @@
 ### 📊 **Project Management**
 ```
 📁 progress/             → Feature progress, milestones, tracking
+├── navigation-restructure.md → Recent navigation system overhaul
+├── i18n-progress.md     → Translation completion tracking
+└── feature-status.md    → Overall development progress
 📁 migrations/           → Historical changes, upgrade guides
 📁 checklists/           → Quality gates, review processes
 ```
@@ -68,6 +79,7 @@
 
 #### **🔥 Start Coding Right Now**
 - **[Developer Quickstart](./quick-reference/developer-quickstart.md)** - 5-minute setup
+- **[Navigation Guide](./quick-reference/navigation-guide.md)** - 5-tab structure & planning navigation
 - **[Component Cheatsheet](./quick-reference/component-cheatsheet.md)** - All UI components
 - **[Database Patterns](./quick-reference/database-patterns.md)** - Common queries
 - **[Code Templates](./templates/code-templates.md)** - Ready-to-use code
@@ -75,6 +87,7 @@
 
 #### **🔧 Set Up My Environment**
 - **[Environment Checklist](./quick-reference/environment-checklist.md)** - Verify everything works
+- **[Complete Supabase Setup](./setup/supabase-setup.md)** - Database setup from scratch
 - **[Development Setup](./development/)** - Complete environment guide
 - **[Database Setup](./setup/database-setup.md)** - Database configuration
 
@@ -84,9 +97,11 @@
 - **[UI Templates](./templates/ui-templates.md)** - Ready-to-use interfaces
 
 #### **🗄️ Work with Data**
+- **[Complete Supabase Setup](./setup/supabase-setup.md)** - Full database setup guide
+- **[Supabase Quick Reference](./quick-reference/supabase-reference.md)** - Daily database operations
 - **[Database Schema](./reference/database-schema.md)** - Complete data structure
 - **[API Reference](./api/)** - All endpoints and integration
-- **[Supabase Patterns](./quick-reference/database-patterns.md)** - Common operations
+- **[Database Patterns](./quick-reference/database-patterns.md)** - Common operations
 
 #### **🌍 Add Translations**
 - **[i18n Quickstart](./quick-reference/i18n-quickstart.md)** - Add translations fast

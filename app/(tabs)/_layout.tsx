@@ -72,10 +72,10 @@ const TabLayout = React.memo(() => {
           }}
         />
         <Tabs.Screen
-          name="budgets"
+          name="planning"
           options={{
-            title: t('navigation.budgets', language),
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.pie.fill" color={color} />,
+            title: t('navigation.planning', language),
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.line.uptrend.xyaxis" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -97,17 +97,17 @@ const TabLayout = React.memo(() => {
           }}
         />
         <Tabs.Screen
-          name="savings"
+          name="analytics"
           options={{
-            title: t('navigation.savings', language),
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="target" color={color} />,
+            title: t('navigation.analytics', language),
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="chart.bar.fill" color={color} />,
           }}
         />
         <Tabs.Screen
-          name="debts"
+          name="settings"
           options={{
-            title: t('navigation.debts', language),
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="creditcard.fill" color={color} />,
+            title: t('navigation.settings', language),
+            tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -123,40 +123,9 @@ const TabLayout = React.memo(() => {
           }}
         />
         <Tabs.Screen
-          name="goals"
-          options={{
-            href: null, // This makes it not show in the tab bar
-          }}
-        />
-        <Tabs.Screen
           name="add-transaction"
           options={{
             href: null, // This makes it not show in the tab bar
-          }}
-        />
-        {/* Explicitly hide any other potential tab files */}
-        <Tabs.Screen
-          name="calendar_new"
-          options={{
-            href: null, // Hide if file exists
-          }}
-        />
-        <Tabs.Screen
-          name="profile_clean"
-          options={{
-            href: null, // Hide if file exists
-          }}
-        />
-        <Tabs.Screen
-          name="profile_new"
-          options={{
-            href: null, // Hide if file exists
-          }}
-        />
-        <Tabs.Screen
-          name="savings_new"
-          options={{
-            href: null, // Hide if file exists
           }}
         />
       </Tabs>

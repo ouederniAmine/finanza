@@ -107,7 +107,7 @@ export default function ResetPasswordScreen() {
             onPress: () => {
               // Sign out first to clear the recovery session
               supabase.auth.signOut().then(() => {
-                router.replace('/auth/login');
+                router.replace('/auth/sign-in');
               });
             }
           }]
@@ -272,7 +272,7 @@ export default function ResetPasswordScreen() {
               <Text className="text-white/80 text-lg" style={{ textAlign }}>
                 {t('auth.login_link', language).split('?')[0]}
               </Text>
-              <TouchableOpacity onPress={() => router.push('/auth/login')}>
+              <TouchableOpacity onPress={() => router.push('/auth/sign-in')}>
                 <Text className="text-white text-lg font-semibold" style={{ textAlign }}>
                   {t('auth.login_link', language).split('?')[1]}
                 </Text>

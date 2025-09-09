@@ -1,11 +1,11 @@
+import { useRequireAuth } from '@/lib/auth-utils-clerk';
+import { formatCurrency, getTextAlign, t } from '@/lib/i18n';
+import { useUIStore } from '@/lib/store';
+import { supabase } from '@/lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRequireAuth } from '../../lib/auth-utils-clerk';
-import { formatCurrency, getTextAlign, t } from '../../lib/i18n';
-import { useUIStore } from '../../lib/store';
-import { supabase } from '../../lib/supabase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

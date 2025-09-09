@@ -1,9 +1,12 @@
 {
   "navigation": {
     "home": "Accueil",
+    "planning": "Planification",
+    "calendar": "Calendrier",
+    "analytics": "Analyses",
+    "settings": "Paramètres",
     "transactions": "Transactions",
     "budgets": "Budgets",
-    "calendar": "Calendrier",
     "savings": "Épargne",
     "debts": "Dettes",
     "profile": "Profil"

@@ -1,9 +1,12 @@
 {
   "navigation": {
     "home": "الدار",
+    "planning": "التخطيط",
+    "calendar": "الروزنامة",
+    "analytics": "التحليلات",
+    "settings": "الإعدادات",
     "transactions": "المعاملات",
     "budgets": "الميزانيات",
-    "calendar": "الروزنامة",
     "savings": "التوفير",
     "debts": "الديون",
     "profile": "البروفايل"

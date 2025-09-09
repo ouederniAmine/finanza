@@ -1,9 +1,12 @@
 {
   "navigation": {
     "home": "Home",
+    "planning": "Planning",
+    "calendar": "Calendar",
+    "analytics": "Analytics",
+    "settings": "Settings",
     "transactions": "Transactions",
     "budgets": "Budgets",
-    "calendar": "Calendar",
     "savings": "Savings",
     "debts": "Debts",
     "profile": "Profile"
@@ -136,13 +139,6 @@
       "motivation_text": "Small steps lead to big achievements. Every contribution brings you closer to your dream!"
     },
     "validation": {
-      "error_title": "Validation Error",
-      "goal_name_required": "Please enter a name for your goal",
-      "target_amount_required": "Please enter a valid target amount greater than 0",
-      "category_required": "Please select a category for your goal",
-      "current_exceeds_target": "Current amount cannot be greater than target amount"
-    },
-    "success": {
       "title": "Goal Created!",
       "message": "Your financial goal has been created successfully. Start saving towards your dream!"
     },

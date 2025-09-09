@@ -9,6 +9,82 @@
 
 > 🎯 **Mission**: Empower Tunisian families with a finance app that truly "speaks their language" and understands their cultural context, featuring an animated coin avatar assistant that provides guidance in authentic Tunisian dialect.
 
+## 📱 App Navigation Structure
+
+Finanza features a clean, intuitive **5-tab navigation** designed for optimal user experience:
+
+### **🏠 Home Tab**
+- **Dashboard** with financial overview and quick stats
+- **Recent transactions** and spending insights  
+- **Quick actions** with floating plus button
+- **Financial health** indicators and alerts
+
+### **📊 Planning Tab** (Top Tab Navigation)
+A comprehensive financial planning hub with three specialized sections:
+
+- **💰 Budgets** - Create, track, and manage spending budgets by category
+- **💳 Debts** - Monitor debt payments, track progress, and manage payoff strategies  
+- **🎯 Savings** - Set savings goals, track progress, and celebrate milestones
+
+### **📅 Calendar Tab**
+- **Transaction calendar** with visual spending patterns
+- **Monthly/weekly views** of financial activity
+- **Upcoming bills** and payment reminders
+- **Historical spending** trends and analysis
+
+### **📈 Analytics Tab**  
+- **Spending insights** and category breakdowns
+- **Trends analysis** with interactive charts
+- **Financial reports** and export capabilities
+- **Goal progress** tracking and achievements
+
+### **⚙️ Settings Tab**
+- **User profile** and account management
+- **Language preferences** (Tunisian, Arabic, French, English)
+- **Currency settings** and regional preferences
+- **Security settings** and data backup options
+
+## 🚀 Current Implementation Status
+
+### **✅ Recently Completed**
+- **Navigation Restructure**: Successfully implemented the new 5-tab layout replacing the previous structure
+- **Planning Sub-Navigation**: Added Material Top Tabs for budgets, debts, and savings management
+- **Service Layer**: Implemented TypeScript service classes (`TransactionService`, `CategoryService`)
+- **Path Configuration**: Set up `@/` path aliases for cleaner imports and better Metro resolution
+- **Settings Consolidation**: Unified settings page across main navigation and tab navigation
+
+### **🔧 Technical Improvements**
+- **Import Path Resolution**: Fixed Metro bundling issues with absolute path imports
+- **TypeScript Integration**: Enhanced type safety across navigation and service layers
+- **Component Architecture**: Improved organization with proper component hierarchies
+- **Multi-Language Navigation**: Added navigation translations for all supported languages
+
+### **📱 Navigation Implementation Details**
+```typescript
+// Main tab structure
+<Tabs>
+  <Tabs.Screen name="index" />      // Home dashboard
+  <Tabs.Screen name="planning" />   // Financial planning hub
+  <Tabs.Screen name="calendar" />   // Transaction calendar
+  <Tabs.Screen name="analytics" />  // Insights & reports
+  <Tabs.Screen name="settings" />   // App preferences
+</Tabs>
+
+// Planning sub-navigation
+<MaterialTopTabs>
+  <MaterialTopTabs.Screen name="budgets" />
+  <MaterialTopTabs.Screen name="debts" />
+  <MaterialTopTabs.Screen name="savings" />
+</MaterialTopTabs>
+```
+
+### **🎯 Next Implementation Steps**
+1. **Dashboard Development**: Complete home screen with financial overview widgets
+2. **Transaction Management**: Implement CRUD operations for transactions
+3. **Budget System**: Build budget creation and tracking functionality
+4. **Savings Goals**: Develop goal setting and progress tracking
+5. **Calendar Integration**: Add transaction calendar views and filters
+
 ## � Quick Start
 
 ### **Prerequisites**
@@ -23,29 +99,416 @@ git clone https://github.com/nextgen-coding/finanza.git
 cd finanza
 npm install
 
-# Environment setup (.env file)
-EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_key_here
-EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+# Environment setup (copy example and fill with your keys)
+cp .env.example .env
+# Edit .env with your actual Clerk and Supabase credentials
+# See detailed setup guide below ⬇️
 
 # Start development
 npm start
 ```
 
 ### **Launch Options**
-- **� iOS**: Press `i` (requires macOS + Xcode)
+- **📱 iOS**: Press `i` (requires macOS + Xcode)
 - **🤖 Android**: Press `a` (requires Android Studio)
 - **🌐 Web**: Press `w` (runs in browser)
 
-## � **Complete Documentation**
+---
+
+## 🗄️ **Complete Supabase Setup Guide**
+
+> **⚡ Set up your own Supabase database from scratch in 30 minutes**
+
+### **🚀 Step 1: Create Supabase Project**
+
+1. **Visit Supabase Dashboard**
+   ```
+   🌐 https://supabase.com/dashboard
+   ```
+
+2. **Create Account & New Project**
+   ```
+   ✅ Click "New Project"
+   ✅ Name: "finanza-production" 
+   ✅ Database Password: Generate & SAVE strong password
+   ✅ Region: Choose closest to users (e.g., "eu-west-1")
+   ✅ Plan: Start with "Free" tier
+   ```
+
+3. **Wait for Setup** (2-3 minutes)
+   - Project will show "Setting up..." status
+   - Once ready, you'll have full dashboard access
+
+### **🗄️ Step 2: Set Up Database Schema**
+
+1. **Navigate to SQL Editor** in your Supabase dashboard
+
+2. **Execute Complete Schema** (copy-paste this SQL):
+
+```sql
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Users table (main profiles)
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  email text NOT NULL UNIQUE,
+  full_name text NOT NULL,
+  avatar_url text,
+  phone_number text,
+  date_of_birth date,
+  preferred_language text DEFAULT 'tn'::text CHECK (preferred_language = ANY (ARRAY['tn'::text, 'ar'::text, 'fr'::text, 'en'::text])),
+  preferred_currency text DEFAULT 'TND'::text CHECK (preferred_currency = ANY (ARRAY['TND'::text, 'USD'::text, 'EUR'::text])),
+  cultural_preferences jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+
+-- Categories table (income/expense categories)
+CREATE TABLE public.categories (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  name_tn text NOT NULL,
+  name_ar text,
+  name_fr text,
+  name_en text,
+  icon text NOT NULL,
+  type text NOT NULL CHECK (type = ANY (ARRAY['income'::text, 'expense'::text])),
+  color text NOT NULL DEFAULT '#3B82F6'::text,
+  is_default boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT categories_pkey PRIMARY KEY (id),
+  CONSTRAINT categories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
+-- Transactions table (financial transactions)
+CREATE TABLE public.transactions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  category_id uuid,
+  amount numeric NOT NULL CHECK (amount > 0::numeric),
+  type text NOT NULL CHECK (type = ANY (ARRAY['income'::text, 'expense'::text, 'transfer'::text])),
+  description_tn text,
+  description_ar text,
+  description_fr text,
+  description_en text,
+  payment_method text CHECK (payment_method = ANY (ARRAY['cash'::text, 'card'::text, 'bank_transfer'::text, 'mobile_payment'::text, 'check'::text])),
+  location text,
+  recurring boolean DEFAULT false,
+  recurring_frequency text CHECK (recurring_frequency = ANY (ARRAY['daily'::text, 'weekly'::text, 'monthly'::text, 'yearly'::text])),
+  tags text[] DEFAULT ARRAY[]::text[],
+  currency text DEFAULT 'TND'::text CHECK (currency = ANY (ARRAY['TND'::text, 'USD'::text, 'EUR'::text])),
+  transaction_date date NOT NULL DEFAULT CURRENT_DATE,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT transactions_pkey PRIMARY KEY (id),
+  CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE,
+  CONSTRAINT transactions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE SET NULL
+);
+
+-- Budgets table (spending budgets)
+CREATE TABLE public.budgets (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  category_id uuid,
+  name_tn text NOT NULL,
+  name_ar text,
+  name_fr text,
+  name_en text,
+  amount numeric NOT NULL CHECK (amount > 0::numeric),
+  period text NOT NULL CHECK (period = ANY (ARRAY['weekly'::text, 'monthly'::text, 'quarterly'::text, 'yearly'::text])),
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  currency text DEFAULT 'TND'::text CHECK (currency = ANY (ARRAY['TND'::text, 'USD'::text, 'EUR'::text])),
+  spent_amount numeric DEFAULT 0,
+  alert_threshold numeric DEFAULT 0.80 CHECK (alert_threshold >= 0::numeric AND alert_threshold <= 1::numeric),
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT budgets_pkey PRIMARY KEY (id),
+  CONSTRAINT budgets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE,
+  CONSTRAINT budgets_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON DELETE CASCADE
+);
+
+-- Savings Goals table 
+CREATE TABLE public.savings_goals (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  title_tn text NOT NULL,
+  title_ar text,
+  title_fr text,
+  title_en text,
+  description_tn text,
+  description_ar text,
+  description_fr text,
+  description_en text,
+  target_amount numeric NOT NULL CHECK (target_amount > 0::numeric),
+  current_amount numeric DEFAULT 0 CHECK (current_amount >= 0::numeric),
+  target_date date,
+  achievement_date date,
+  currency text DEFAULT 'TND'::text CHECK (currency = ANY (ARRAY['TND'::text, 'USD'::text, 'EUR'::text])),
+  priority text DEFAULT 'medium'::text CHECK (priority = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])),
+  icon text DEFAULT '🎯'::text,
+  color text DEFAULT '#10B981'::text,
+  is_achieved boolean DEFAULT false,
+  auto_save_amount numeric DEFAULT 0,
+  auto_save_frequency text CHECK (auto_save_frequency = ANY (ARRAY['daily'::text, 'weekly'::text, 'monthly'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT savings_goals_pkey PRIMARY KEY (id),
+  CONSTRAINT savings_goals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
+-- Debts table (debt tracking)
+CREATE TABLE public.debts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  creditor_name text NOT NULL,
+  debtor_name text,
+  debt_type text NOT NULL CHECK (debt_type = ANY (ARRAY['owed_to_me'::text, 'i_owe'::text, 'loan'::text, 'credit_card'::text])),
+  original_amount numeric NOT NULL CHECK (original_amount > 0::numeric),
+  remaining_amount numeric NOT NULL CHECK (remaining_amount >= 0::numeric),
+  currency text DEFAULT 'TND'::text CHECK (currency = ANY (ARRAY['TND'::text, 'USD'::text, 'EUR'::text])),
+  interest_rate numeric DEFAULT 0 CHECK (interest_rate >= 0::numeric),
+  payment_frequency text CHECK (payment_frequency = ANY (ARRAY['weekly'::text, 'monthly'::text, 'quarterly'::text, 'yearly'::text, 'one_time'::text])),
+  next_payment_date date,
+  due_date date,
+  settlement_date date,
+  minimum_payment numeric DEFAULT 0,
+  description_tn text,
+  description_ar text,
+  description_fr text,
+  description_en text,
+  is_settled boolean DEFAULT false,
+  priority text DEFAULT 'medium'::text CHECK (priority = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT debts_pkey PRIMARY KEY (id),
+  CONSTRAINT debts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
+-- Notifications table (smart notifications)
+CREATE TABLE public.notifications (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  type text NOT NULL CHECK (type = ANY (ARRAY['budget_alert'::text, 'payment_reminder'::text, 'goal_milestone'::text, 'debt_due'::text, 'financial_tip'::text, 'achievement'::text])),
+  title_tn text NOT NULL,
+  title_ar text,
+  title_fr text,
+  title_en text,
+  message_tn text NOT NULL,
+  message_ar text,
+  message_fr text,
+  message_en text,
+  priority text DEFAULT 'medium'::text CHECK (priority = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])),
+  is_read boolean DEFAULT false,
+  action_required boolean DEFAULT false,
+  action_url text,
+  scheduled_for timestamp with time zone DEFAULT now(),
+  sent_at timestamp with time zone,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
+-- Performance indexes
+CREATE INDEX idx_users_email ON public.users(email);
+CREATE INDEX idx_transactions_user_id ON public.transactions(user_id);
+CREATE INDEX idx_transactions_date ON public.transactions(transaction_date);
+CREATE INDEX idx_budgets_user_active ON public.budgets(user_id, is_active);
+CREATE INDEX idx_savings_user_id ON public.savings_goals(user_id);
+CREATE INDEX idx_debts_user_id ON public.debts(user_id);
+CREATE INDEX idx_notifications_user_unread ON public.notifications(user_id, is_read);
+
+-- Updated_at trigger function
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Apply triggers
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_budgets_updated_at BEFORE UPDATE ON public.budgets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_savings_goals_updated_at BEFORE UPDATE ON public.savings_goals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_debts_updated_at BEFORE UPDATE ON public.debts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+```
+
+### **🔐 Step 3: Set Up Row Level Security (RLS)**
+
+Execute this SQL to secure your data:
+
+```sql
+-- Enable RLS on all tables
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.savings_goals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.debts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+-- Users policies
+CREATE POLICY "Users can view own profile" ON public.users FOR SELECT USING (auth.uid()::text = id::text);
+CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING (auth.uid()::text = id::text);
+CREATE POLICY "Users can insert own profile" ON public.users FOR INSERT WITH CHECK (auth.uid()::text = id::text);
+
+-- Categories policies (allow viewing default categories)
+CREATE POLICY "Users can view own/default categories" ON public.categories FOR SELECT USING (auth.uid()::text = user_id::text OR user_id IS NULL);
+CREATE POLICY "Users can insert own categories" ON public.categories FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+CREATE POLICY "Users can update own categories" ON public.categories FOR UPDATE USING (auth.uid()::text = user_id::text);
+CREATE POLICY "Users can delete own categories" ON public.categories FOR DELETE USING (auth.uid()::text = user_id::text);
+
+-- Transactions policies
+CREATE POLICY "Users can manage own transactions" ON public.transactions FOR ALL USING (auth.uid()::text = user_id::text);
+
+-- Budgets policies
+CREATE POLICY "Users can manage own budgets" ON public.budgets FOR ALL USING (auth.uid()::text = user_id::text);
+
+-- Savings goals policies
+CREATE POLICY "Users can manage own savings goals" ON public.savings_goals FOR ALL USING (auth.uid()::text = user_id::text);
+
+-- Debts policies
+CREATE POLICY "Users can manage own debts" ON public.debts FOR ALL USING (auth.uid()::text = user_id::text);
+
+-- Notifications policies
+CREATE POLICY "Users can manage own notifications" ON public.notifications FOR ALL USING (auth.uid()::text = user_id::text);
+```
+
+### **📊 Step 4: Add Default Categories**
+
+Populate with Tunisian financial categories:
+
+```sql
+-- Default expense categories (Tunisian context)
+INSERT INTO public.categories (user_id, name_tn, name_ar, name_fr, name_en, icon, type, color, is_default) VALUES
+-- Essential expenses
+(NULL, 'مأكول و مشروب', 'طعام ومشروبات', 'Alimentation', 'Food & Drinks', '🍽️', 'expense', '#FF6B6B', true),
+(NULL, 'نقل و مواصلات', 'النقل والمواصلات', 'Transport', 'Transportation', '🚗', 'expense', '#4ECDC4', true),
+(NULL, 'سكن', 'إسكان', 'Logement', 'Housing', '🏠', 'expense', '#45B7D1', true),
+(NULL, 'صحة', 'الصحة', 'Santé', 'Healthcare', '⚕️', 'expense', '#96CEB4', true),
+(NULL, 'تعليم', 'التعليم', 'Éducation', 'Education', '📚', 'expense', '#FFEAA7', true),
+
+-- Lifestyle expenses  
+(NULL, 'ترفيه', 'الترفيه', 'Divertissement', 'Entertainment', '🎬', 'expense', '#DDA0DD', true),
+(NULL, 'ملابس', 'الملابس', 'Vêtements', 'Clothing', '👕', 'expense', '#F8B4B4', true),
+(NULL, 'تسوق', 'التسوق', 'Shopping', 'Shopping', '🛍️', 'expense', '#FFB4E6', true),
+(NULL, 'رياضة', 'الرياضة', 'Sport', 'Sports', '⚽', 'expense', '#B4FFB4', true),
+(NULL, 'سفر', 'السفر', 'Voyage', 'Travel', '✈️', 'expense', '#87CEEB', true),
+
+-- Financial categories
+(NULL, 'فوائد و ديون', 'الفوائد والديون', 'Intérêts & Dettes', 'Interest & Debts', '💳', 'expense', '#FF9999', true),
+(NULL, 'تأمين', 'التأمين', 'Assurance', 'Insurance', '🛡️', 'expense', '#D3D3D3', true),
+
+-- Income categories
+(NULL, 'راتب', 'الراتب', 'Salaire', 'Salary', '💰', 'income', '#10B981', true),
+(NULL, 'أعمال حرة', 'العمل الحر', 'Freelance', 'Freelance', '💼', 'income', '#059669', true),
+(NULL, 'استثمارات', 'الاستثمارات', 'Investissements', 'Investments', '📈', 'income', '#065F46', true),
+(NULL, 'هدايا و مساعدات', 'الهدايا والمساعدات', 'Cadeaux & Aides', 'Gifts & Aid', '🎁', 'income', '#34D399', true);
+```
+
+### **🔑 Step 5: Configure Authentication**
+
+1. **Go to Authentication > Settings**
+
+2. **Set Site URL**
+   ```
+   Site URL: http://localhost:8081
+   Additional redirect URLs:
+   - https://your-domain.com
+   - exp://127.0.0.1:19000
+   ```
+
+3. **Enable Providers**
+   ```
+   ✅ Email/Password
+   ✅ Google OAuth (optional)
+   ✅ Facebook OAuth (optional)
+   ```
+
+### **🔧 Step 6: Get Your Keys & Configure App**
+
+1. **Get Supabase Keys**
+   - Go to **Settings > API** in your Supabase dashboard
+   - Copy these values:
+
+2. **Update Your Environment**
+   ```bash
+   # Copy the example file
+   cp .env.example .env
+   
+   # Edit with your actual values
+   ```
+
+3. **Fill in `.env` file:**
+   ```env
+   # Clerk Authentication
+   EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_key_here
+   
+   # Supabase Configuration  
+   EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+   
+   # Database URLs
+   DATABASE_URL=postgresql://postgres:your_password@db.your-project-ref.supabase.co:5432/postgres
+   DIRECT_URL=postgresql://postgres:your_password@db.your-project-ref.supabase.co:5432/postgres
+   ```
+
+### **🧪 Step 7: Test Your Setup**
+
+```bash
+# Install dependencies and test
+npm install
+npx prisma generate
+npx prisma db pull  # Should sync your schema
+
+# Start the app
+npm start
+```
+
+### **✅ Verification Checklist**
+
+- [ ] **Database**: All 7 tables created successfully
+- [ ] **RLS**: Security policies working (users can only see their data)
+- [ ] **Categories**: Default categories populated
+- [ ] **Authentication**: Login/signup working
+- [ ] **Environment**: All keys configured correctly
+- [ ] **Connection**: App connects to database successfully
+
+### **🚨 Troubleshooting**
+
+| Issue | Solution |
+|-------|----------|
+| "Connection refused" | Check DATABASE_URL format and password |
+| "Row level security policy violated" | Verify user is authenticated |
+| "Table does not exist" | Re-run the schema setup SQL |
+| "Invalid JWT" | Check Supabase URL and anon key |
+
+### **📚 Advanced Setup**
+
+For production deployment, monitoring, and advanced features, see our [Complete Supabase Setup Guide](./docs/setup/supabase-setup.md).
+
+---
+
+## 📖 **Complete Documentation**
 
 > **📖 For comprehensive guides, architecture details, and development workflows, visit our [Knowledge Base](./docs/KNOWLEDGE_BASE.md)**
 
 ### **🔥 Quick Access**
 - **[🚀 Developer Quickstart](./docs/quick-reference/developer-quickstart.md)** - Start coding in 5 minutes
-- **[🔧 Environment Setup](./docs/quick-reference/environment-checklist.md)** - Verify everything works
+- **[� Navigation Guide](./docs/quick-reference/navigation-guide.md)** - Complete navigation structure reference
+- **[�🔧 Environment Setup](./docs/quick-reference/environment-checklist.md)** - Verify everything works
 - **[📚 Component Library](./docs/quick-reference/component-cheatsheet.md)** - All UI components
-- **[🗄️ Database Patterns](./docs/quick-reference/database-patterns.md)** - Common operations
+- **[🗄️ Complete Supabase Setup](./docs/setup/supabase-setup.md)** - Database setup from scratch
+- **[🗄️ Database Operations](./docs/quick-reference/supabase-reference.md)** - Daily database operations
 
 ### **📁 Documentation Structure**
 ```
@@ -553,6 +1016,32 @@ The app features an animated gold coin avatar that:
 
 ## 🏗️ Technical Architecture
 
+### **Navigation Architecture**
+```mermaid
+graph TD
+    A[App Entry] --> B[Tab Layout]
+    B --> C[Home Tab]
+    B --> D[Planning Tab]
+    B --> E[Calendar Tab]
+    B --> F[Analytics Tab]
+    B --> G[Settings Tab]
+    
+    D --> H[MaterialTopTabs]
+    H --> I[Budgets Screen]
+    H --> J[Debts Screen] 
+    H --> K[Savings Screen]
+    
+    C --> L[Dashboard View]
+    C --> M[Plus Button Overlay]
+```
+
+**Key Navigation Features:**
+- **5-Tab Main Navigation**: Home, Planning, Calendar, Analytics, Settings
+- **Planning Sub-Navigation**: Material Top Tabs for Budgets/Debts/Savings
+- **Contextual Actions**: Floating plus button on home screen
+- **Type-Safe Routing**: Expo Router with TypeScript
+- **Haptic Feedback**: Enhanced user experience with tactile responses
+
 ### **Authentication & Security**
 ```mermaid
 graph LR
@@ -586,26 +1075,44 @@ graph TD
    - Supabase provides powerful database features
    - Best of both worlds for auth and data
 
-2. **File-based Routing**
-   - Intuitive folder structure
-   - Automatic route generation
-   - Type-safe navigation
+2. **Multi-Level Navigation System**
+   - Main tabs for primary features
+   - Material top tabs for planning subsections
+   - Hidden screens for detailed views
+   - Seamless navigation with proper state management
 
 3. **NativeWind Styling**
-   - Tailwind CSS productivity
-   - Native performance
-   - Consistent cross-platform design
+   - Tailwind CSS productivity with `@/` path aliases
+   - Native performance optimization
+   - Consistent cross-platform design system
 
 4. **TypeScript Everything**
-   - Complete type safety
-   - Better developer experience
-   - Reduced runtime errors
+   - Complete type safety across navigation and data layers
+   - Better developer experience with IntelliSense
+   - Reduced runtime errors with compile-time checks
+
+### **Service Layer Architecture**
+```typescript
+// Service layer for clean data operations
+class TransactionService {
+  static async createTransaction(data: TransactionData) {
+    // Supabase integration with type safety
+  }
+}
+
+class CategoryService {
+  static async getUserCategories(userId: string) {
+    // Cached category retrieval
+  }
+}
+```
 
 ### **Performance Optimizations**
-- **Lazy Loading**: Route-based code splitting
-- **Image Optimization**: Expo Image with caching
-- **Data Caching**: TanStack Query smart caching
+- **Lazy Loading**: Route-based code splitting with Expo Router
+- **Image Optimization**: Expo Image with smart caching
+- **Data Caching**: TanStack Query for server state management
 - **Bundle Splitting**: Platform-specific optimizations
+- **Path Aliases**: `@/` imports prevent Metro resolution issues
 
 ## 🔧 Development Workflow
 
@@ -702,44 +1209,52 @@ Our documentation covers every aspect of the Finanza app development and deploym
 
 ### **✅ Phase 1: Foundation (Completed)**
 - [x] Project setup with Expo SDK 53 + TypeScript
-- [x] Clerk authentication integration
+- [x] Clerk authentication integration  
 - [x] Supabase database configuration
-- [x] Multi-language support (4 languages)
-- [x] Navigation structure with tab layout
-- [x] Basic UI components and theming
+- [x] Multi-language support (4 languages: Tunisian, Arabic, French, English)
+- [x] **5-tab navigation structure** (Home, Planning, Calendar, Analytics, Settings)
+- [x] **Planning sub-navigation** with Material Top Tabs (Budgets, Debts, Savings)
+- [x] Basic UI components and theming with NativeWind
 - [x] RTL support for Arabic languages
+- [x] Service layer architecture with TypeScript
+- [x] Path alias configuration (@/) for clean imports
 
 ### **🚧 Phase 2: Core Features (In Progress)**
-- [x] User onboarding flow
-- [x] Authentication screens (sign in/up)
-- [ ] Transaction CRUD operations
-- [ ] Budget creation and tracking
-- [ ] Savings goals management
-- [ ] Dashboard with financial overview
-- [ ] Data persistence and synchronization
+- [x] User onboarding flow with welcome screens
+- [x] Authentication screens (sign in/up/forgot password)
+- [x] **Navigation restructure** with planning subsections
+- [x] Basic transaction and category service classes
+- [ ] **Dashboard implementation** with financial overview
+- [ ] **Transaction CRUD operations** with form validation
+- [ ] **Budget creation and tracking** in planning tab
+- [ ] **Savings goals management** with progress tracking
+- [ ] **Calendar view** for transaction history
+- [ ] **Analytics dashboard** with charts and insights
+- [ ] Data persistence and real-time synchronization
 
 ### **📋 Phase 3: Advanced Features (Planned)**
-- [ ] Smart notifications with Tunisian dialect
-- [ ] Receipt photo capture and OCR
+- [ ] Smart notifications with authentic Tunisian dialect
+- [ ] Receipt photo capture and OCR processing
 - [ ] Recurring transactions and bill reminders
-- [ ] Financial insights and analytics
-- [ ] Data export (CSV, PDF)
-- [ ] Offline mode support
+- [ ] Advanced financial insights and trend analysis
+- [ ] Data export capabilities (CSV, PDF reports)
+- [ ] Offline mode support with local storage
+- [ ] **Planning feature enhancements** (debt payoff calculators, savings challenges)
 
 ### **🔮 Phase 4: Platform Enhancements (Future)**
-- [ ] iOS/Android widgets
+- [ ] iOS/Android widgets for quick balance checks
 - [ ] Apple Pay / Google Pay integration
-- [ ] Biometric authentication
+- [ ] Biometric authentication (Face ID, Touch ID)
 - [ ] AI-powered expense categorization
-- [ ] Social features (family budgets)
-- [ ] Investment tracking
+- [ ] Social features (family budgets, shared goals)
+- [ ] Investment tracking and portfolio management
 
 ### **🌍 Phase 5: Regional Expansion (Vision)**
 - [ ] Morocco and Algeria dialect variants
-- [ ] Multi-currency support
-- [ ] Regional bank integrations
-- [ ] Advanced analytics and reporting
-- [ ] Financial education content
+- [ ] Multi-currency support beyond TND
+- [ ] Regional bank integrations and Open Banking APIs
+- [ ] Advanced analytics and financial reporting
+- [ ] Financial education content in local dialects
 
 ## 🛠️ Environment Configuration
 
@@ -925,15 +1440,24 @@ cd android && ./gradlew clean && cd ..
 ## 📊 Project Statistics
 
 ```
-📁 Total Files: 100+
-📝 Lines of Code: 10,000+
-🌍 Languages: 4 (tn, ar, fr, en)
+📁 Source Files: 98 (TypeScript/JavaScript)
+📝 Lines of Code: 15,000+ (estimated)
+🌍 Languages: 4 (Tunisian, Arabic, French, English)
 📱 Platforms: 3 (iOS, Android, Web)
-🔧 Dependencies: 45+
-📚 Documentation: 15+ detailed guides
-🧪 Test Coverage: Target 80%+
+🔧 Dependencies: 50+ (production + development)
+� Main Navigation: 5 tabs + 3 planning sub-tabs
+�📚 Documentation: 20+ comprehensive guides
+🧪 Test Coverage: Target 80%+ (planned)
 ⭐ Contributors: Open for community
+🏗️ Architecture: Modern React Native + TypeScript
 ```
+
+**Recent Updates:**
+- ✅ **Navigation Restructure**: Implemented 5-tab layout with planning sub-navigation
+- ✅ **Service Layer**: Added TypeScript service classes for data operations  
+- ✅ **Path Aliases**: Configured `@/` imports for cleaner code organization
+- ✅ **Multi-level Navigation**: Material Top Tabs for budgets/debts/savings
+- ✅ **Documentation**: Enhanced README with current architecture
 
 ## 📄 License & Legal
 

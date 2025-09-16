@@ -6,7 +6,7 @@ import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'reac
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getTextAlign, t } from '../../lib/i18n';
 import { useUIStore } from '../../lib/store';
-import { supabase } from '../../lib/supabase';
+import { UserService } from '../../lib/services/user.service';
 
 export default function BalanceScreen() {
   const { user } = useUser();
@@ -47,17 +47,17 @@ export default function BalanceScreen() {
         return;
       }
       
-      // Update user's total balance in the database
-      const { error } = await supabase
-        .from('users')
-        .update({
+      // Update user's total balance using UserService with proper Clerk ID to UUID mapping
+      try {
+        const updatedUser = await UserService.updateProfile(user.id, {
           total_balance: balance,
           balance_last_updated: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-
-      if (error) {
+        });
+        
+        if (!updatedUser) {
+          throw new Error('Failed to update balance');
+        }
+      } catch (error) {
         console.error('Error saving balance:', error);
         Alert.alert(
           t('messages.error', language), 

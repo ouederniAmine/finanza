@@ -63,7 +63,29 @@ export async function createSupabaseUser(clerkUser: any) {
     return data;
   } catch (error) {
     console.error('Error in createSupabaseUser:', error);
-    throw error;
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('Failed to fetch') || error.message.includes('ERR_NAME_NOT_RESOLVED')) {
+        throw new Error('Network connection failed. Please check your internet connection and try again.');
+      } else if (error.message.includes('JWT') || error.message.includes('authorization')) {
+        throw new Error('Authentication failed. Please check your Supabase configuration.');
+      } else if (error.message.includes('duplicate key') || error.message.includes('unique constraint')) {
+        throw new Error('User account already exists. Please try signing in instead.');
+      } else if (error.message.includes('22P02') || error.message.includes('invalid input syntax for type uuid')) {
+        throw new Error('Database sync failed. Invalid user ID format detected. Please sign in again.');
+      }
+    }
+    
+    // Check if error object has code property (Supabase error format)
+    if (error && typeof error === 'object' && 'code' in error) {
+      const supabaseError = error as any;
+      if (supabaseError.code === '22P02') {
+        throw new Error('Database sync failed. Invalid user ID format detected. Please sign in again.');
+      }
+    }
+    
+    throw new Error('Failed to sync user data. Please try again later.');
   }
 }
 
@@ -262,8 +284,8 @@ export async function checkOnboardingStatus(clerkUser: any): Promise<boolean> {
       return false;
     }
 
-    // Check if onboarding_completed flag is set
-    const isCompleted = supabaseUser.cultural_preferences?.onboarding_completed === true;
+    // Check if onboarding_completed flag is set in the database column
+    const isCompleted = supabaseUser.onboarding_completed === true;
     console.log('Onboarding status for user:', clerkUser.id, 'is completed:', isCompleted);
     
     return isCompleted;

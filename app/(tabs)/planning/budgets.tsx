@@ -5,9 +5,12 @@ import { supabase } from '@/lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import PlanningSegmentedBar from '../../../components/PlanningSegmentedBar';
+import PlanningSwipeWrapper from '../../../components/PlanningSwipeWrapper';
+import { PlusButton } from '../../../components/PlusButton';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Category {
   id: string;
@@ -33,6 +36,7 @@ interface Budget {
 }
 
 export default function BudgetsScreen() {
+  const insets = useSafeAreaInsets();
   const { user, isLoading: authLoading } = useRequireAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -214,8 +218,15 @@ export default function BudgetsScreen() {
     }
   };
 
+  const isUUID = (val: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(val);
+
   const loadData = async () => {
     if (!user) return;
+    if (!isUUID(user.id)) {
+      console.warn('[Budgets] User id is not a UUID (Clerk id?):', user.id, '— skipping Supabase queries to avoid 22P02.');
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
@@ -273,13 +284,15 @@ export default function BudgetsScreen() {
   useEffect(() => {
     if (user) {
       loadData();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
   // Refresh data when screen comes into focus (e.g., after adding a transaction)
   useFocusEffect(
     useCallback(() => {
-      if (user) {
+      if (user && isUUID(user.id)) {
         loadData();
       }
     }, [user])
@@ -382,157 +395,152 @@ export default function BudgetsScreen() {
     );
   }
 
+  // Layout measurements
+  const cardWidth = SCREEN_WIDTH; // full width card
+  const cardHeight = Math.min(641, SCREEN_HEIGHT - 200); // adjust to allow more vertical space
+
+  const PALETTE = ['#EED4C4','#C2E0C4','#F4C3AA','#BADADA','#F4CBD8'];
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={[styles.greeting, { textAlign }]}>{getGreeting()}</Text>
-            <Text style={[styles.headerTitle, { textAlign }]}>{t('budget.title', language)}</Text>
+      <PlanningSwipeWrapper>
+        <PlanningSegmentedBar />
+        <View style={styles.pageContent}>
+          {/* Hero Section */}
+          <View style={styles.hero}>
+            <Text style={styles.heroTitle}>Budget Overview</Text>
+            <Text style={styles.heroSubtitle}>Total Budget</Text>
+            <Text style={styles.heroAmount}>
+              {formatCurrency(monthlyIncome, getCurrencyCode(language), language)}
+            </Text>
           </View>
-          <TouchableOpacity 
-            style={styles.addButton}
-            onPress={() => setShowAddModal(true)}
-          >
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* Summary Section */}
-        <View style={styles.summaryContainer}>
-          <Text style={[styles.summaryLabel, { textAlign }]}>
-            {t('budget.total_budget', language)}
-          </Text>
-          <Text style={[styles.summaryAmount, { textAlign }]}>
-            {formatCurrency(monthlyIncome, getCurrencyCode(language), language)}
-          </Text>
-          <View style={styles.summaryProgress}>
-            <View 
-              style={[
-                styles.summaryProgressFill, 
-                { 
-                  width: monthlyIncome > 0 ? `${Math.min((totalAllocated / monthlyIncome) * 100, 100)}%` : '0%',
-                  backgroundColor: totalAllocated > monthlyIncome ? '#EF4444' : '#10B981'
+          {/* Card with scrollable content */}
+            <View style={[styles.card, { width: cardWidth, height: cardHeight }]}>
+              <ScrollView
+                style={styles.cardScroll}
+                contentContainerStyle={styles.cardScrollContent}
+                refreshControl={
+                  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                 }
-              ]} 
-            />
-          </View>
-          <Text style={[styles.summarySubtext, { textAlign }]}>
-            {formatCurrency(totalAllocated, getCurrencyCode(language), language)} {t('budget.allocated_of', language)} {formatCurrency(monthlyIncome, getCurrencyCode(language), language)}
-          </Text>
-        </View>
+                showsVerticalScrollIndicator={false}
+              >
+                {/* Allocated Summary */}
+                <Text style={styles.allocatedSummary}> 
+                  {formatCurrency(totalAllocated, getCurrencyCode(language), language)} allocated of {formatCurrency(monthlyIncome, getCurrencyCode(language), language)}
+                </Text>
 
-        {/* Spent vs Remaining Cards */}
-        <View style={styles.budgetCardsRow}>
-          <View style={[styles.budgetCard, styles.spentCard]}>
-            <View style={styles.budgetCardIcon}>
-              <Text style={styles.budgetCardIconText}>💸</Text>
-            </View>
-            <Text style={[styles.budgetCardLabel, { textAlign }]}>
-              {t('budget.spent', language)}
-            </Text>
-            <Text style={[styles.budgetCardAmount, { textAlign }]}>
-              {formatCurrency(totalSpent, getCurrencyCode(language), language)}
-            </Text>
-          </View>
-          
-          <View style={[styles.budgetCard, styles.remainingCard]}>
-            <View style={styles.budgetCardIcon}>
-              <Text style={styles.budgetCardIconText}>💰</Text>
-            </View>
-            <Text style={[styles.budgetCardLabel, { textAlign }]}>
-              {t('budget.remaining', language)}
-            </Text>
-            <Text style={[styles.budgetCardAmount, { textAlign }]}>
-              {formatCurrency(Math.max(totalAllocated - totalSpent, 0), getCurrencyCode(language), language)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Budgets List */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { textAlign }]}>{t('budget.budgets', language)}</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAllText}>{t('budget.view_all', language)}</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.budgetsList}>
-            {budgets.length === 0 ? (
-              <View style={styles.noBudgetsContainer}>
-                <Text style={[styles.noBudgetsText, { textAlign }]}>{t('budget.no_budgets', language)}</Text>
-                <Text style={[styles.noBudgetsSubtext, { textAlign }]}>{t('budget.add_first_budget', language)}</Text>
-              </View>
-            ) : (
-              budgets.map((budget) => {
-                const percentage = budget.allocated > 0 ? (budget.spent / budget.allocated) * 100 : 0;
-                const progressColor = getProgressColor(budget.spent, budget.allocated);
-                
-                return (
-                  <TouchableOpacity 
-                    key={budget.id} 
-                    style={styles.budgetItem}
-                    onPress={() => handleEditPress(budget)}
-                  >
-                    <View style={styles.budgetItemLeft}>
-                      <View style={[styles.budgetItemIcon, { backgroundColor: `${budget.color}20` }]}>
-                        <Text style={styles.budgetItemEmoji}>{budget.icon}</Text>
-                      </View>
-                      <View style={styles.budgetItemInfo}>
-                        <Text style={[styles.budgetItemCategory, { textAlign }]}>
-                          {getCategoryName(categories.find(c => c.id === budget.category_id), language)}
-                        </Text>
-                        <Text style={[styles.budgetItemAmounts, { textAlign }]}>
-                          {formatCurrency(budget.spent, getCurrencyCode(language), language)} / {formatCurrency(budget.allocated, getCurrencyCode(language), language)}
-                        </Text>
-                      </View>
+                {/* Spent vs Remaining Cards */}
+                <View style={styles.budgetCardsRow}>
+                  <View style={[styles.budgetCard, styles.spentCard]}>
+                    <View style={styles.budgetCardIcon}>
+                      <Text style={styles.budgetCardIconText}>💸</Text>
                     </View>
-                    <View style={styles.budgetItemRight}>
-                      <Text style={[styles.budgetItemPercentage, { color: progressColor }]}>
-                        {percentage.toFixed(0)}%
-                      </Text>
-                      <View style={styles.budgetItemProgressContainer}>
-                        <View style={styles.budgetItemProgress}>
-                          <View 
-                            style={[
-                              styles.budgetItemProgressFill, 
-                              { 
-                                width: `${Math.min(percentage, 100)}%`,
-                                backgroundColor: progressColor 
-                              }
-                            ]} 
-                          />
-                        </View>
-                      </View>
+                    <Text style={styles.budgetCardLabel}>
+                      {t('budget.spent', language)}
+                    </Text>
+                    <Text style={styles.budgetCardAmount}>
+                      {formatCurrency(totalSpent, getCurrencyCode(language), language)}
+                    </Text>
+                  </View>
+                  
+                  <View style={[styles.budgetCard, styles.remainingCard]}>
+                    <View style={styles.budgetCardIcon}>
+                      <Text style={styles.budgetCardIconText}>💰</Text>
                     </View>
-                  </TouchableOpacity>
-                );
-              })
-            )}
-          </View>
-        </View>
+                    <Text style={styles.budgetCardLabel}>
+                      {t('budget.remaining', language)}
+                    </Text>
+                    <Text style={styles.budgetCardAmount}>
+                      {formatCurrency(Math.max(totalAllocated - totalSpent, 0), getCurrencyCode(language), language)}
+                    </Text>
+                  </View>
+                </View>
 
-        {/* Budget Tips */}
-        <View style={styles.section}>
-          <View style={styles.tipsContainer}>
-            <View style={styles.tipsHeader}>
-              <Text style={styles.tipsIcon}>💡</Text>
-              <Text style={[styles.tipsTitle, { textAlign }]}>{t('budget.budget_tips', language)}</Text>
+                {/* Budgets List */}
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>{t('budget.budgets', language)}</Text>
+                    <TouchableOpacity onPress={() => setShowAddModal(true)}>
+                      <Text style={styles.viewAllText}>{t('budget.add_budget', language)}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={styles.budgetsList}>
+                    {budgets.length === 0 ? (
+                      <View style={styles.noBudgetsContainer}>
+                        <Text style={styles.noBudgetsText}>{t('budget.no_budgets', language)}</Text>
+                        <Text style={styles.noBudgetsSubtext}>{t('budget.add_first_budget', language)}</Text>
+                      </View>
+                    ) : (
+                      budgets.map((budget, index) => {
+                        const percentage = budget.allocated > 0 ? (budget.spent / budget.allocated) * 100 : 0;
+                        const progressColor = getProgressColor(budget.spent, budget.allocated);
+                        const cardColor = PALETTE[index % PALETTE.length];
+                        
+                        return (
+                          <TouchableOpacity 
+                            key={budget.id} 
+                            style={[styles.budgetItem,{backgroundColor: cardColor}]}
+                            onPress={() => handleEditPress(budget)}
+                          >
+                            <View style={styles.budgetItemLeft}>
+                              <View style={[styles.budgetItemIcon, { backgroundColor: `${budget.color}20` }]}>
+                                <Text style={styles.budgetItemEmoji}>{budget.icon}</Text>
+                              </View>
+                              <View style={styles.budgetItemInfo}>
+                                <Text style={styles.budgetItemCategory}>
+                                  {getCategoryName(categories.find(c => c.id === budget.category_id), language)}
+                                </Text>
+                                <Text style={styles.budgetItemAmounts}>
+                                  {formatCurrency(budget.spent, getCurrencyCode(language), language)} / {formatCurrency(budget.allocated, getCurrencyCode(language), language)}
+                                </Text>
+                              </View>
+                            </View>
+                            <View style={styles.budgetItemRight}>
+                              <Text style={[styles.budgetItemPercentage, { color: progressColor }]}>
+                                {percentage.toFixed(0)}%
+                              </Text>
+                              <View style={styles.budgetItemProgressContainer}>
+                                <View style={styles.budgetItemProgress}>
+                                  <View 
+                                    style={[
+                                      styles.budgetItemProgressFill, 
+                                      { 
+                                        width: `${Math.min(percentage, 100)}%`,
+                                        backgroundColor: progressColor 
+                                      }
+                                    ]} 
+                                  />
+                                </View>
+                              </View>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })
+                    )}
+                  </View>
+                </View>
+
+                {/* Budget Tips */}
+                <View style={styles.section}>
+                  <View style={styles.tipsContainer}>
+                    <View style={styles.tipsHeader}>
+                      <Text style={styles.tipsIcon}>💡</Text>
+                      <Text style={styles.tipsTitle}>{t('budget.budget_tips', language)}</Text>
+                    </View>
+                    <Text style={styles.tipsText}>
+                      {t('budget.budget_tip_message', language)}
+                    </Text>
+                  </View>
+                </View>
+              </ScrollView>
             </View>
-            <Text style={[styles.tipsText, { textAlign }]}>
-              {t('budget.budget_tip_message', language)}
-            </Text>
-          </View>
         </View>
-      </ScrollView>
+      </PlanningSwipeWrapper>
+      {/* Floating Add Button above bottom tab bar */}
+      <View style={[styles.fabRootWrapper, { bottom: insets.bottom + 96 }]} pointerEvents="box-none">
+        <PlusButton onPress={() => setShowAddModal(true)} />
+      </View>
 
       {/* Add Budget Modal */}
       <Modal
@@ -666,10 +674,60 @@ export default function BudgetsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFBFC',
+    backgroundColor: '#EAD9C9',
   },
-  scrollView: {
+  pageContent: {
     flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  hero: {
+    width: '100%',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  heroTitle: {
+    color: '#002E52',
+    textAlign: 'left',
+    fontFamily: 'SourceSansPro-Bold',
+    fontSize: 25,
+    fontWeight: '700',
+    lineHeight: 30,
+  },
+  heroSubtitle: {
+    color: '#000000',
+    textAlign: 'left',
+    fontFamily: 'SourceSansPro-Regular',
+    fontSize: 16,
+    fontWeight: '400',
+    lineHeight: 22,
+    marginTop: 6,
+  },
+  heroAmount: {
+    color: '#002E52',
+    textAlign: 'left',
+    fontFamily: 'SourceSansPro-Bold',
+    fontSize: 25,
+    fontWeight: '700',
+    lineHeight: 30,
+    marginTop: 4,
+  },
+  card: {
+    backgroundColor: '#ECE0D6',
+    borderRadius: 50,
+    paddingTop: 24,
+    paddingHorizontal: 20,
+    overflow: 'hidden',
+  },
+  cardScroll: { flex: 1 },
+  cardScrollContent: { paddingBottom: 60 },
+  fabRootWrapper: {
+    position: 'absolute',
+    right: 24,
+    bottom: 80, // lift above bottom tab bar
+    zIndex: 100,
+    elevation: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -681,69 +739,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
-  },
-  greeting: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#667EEA',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addButtonText: {
-    fontSize: 24,
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  summaryContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  summaryLabel: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  summaryAmount: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  summaryProgress: {
-    height: 12,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 6,
-    marginBottom: 8,
-  },
-  summaryProgressFill: {
-    height: '100%',
-    borderRadius: 6,
-  },
-  summarySubtext: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
   budgetCardsRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
     marginBottom: 32,
     gap: 16,
   },
@@ -791,10 +788,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1F2937',
   },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 32,
+  allocatedSummary: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#000000',
+    textAlign: 'left',
+    marginBottom: 16,
+    fontFamily: 'SourceSansPro-Regular',
   },
+  section: { marginBottom: 32 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

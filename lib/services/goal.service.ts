@@ -5,15 +5,26 @@ import { supabase } from '../supabase';
 export class GoalService {
   /**
    * Get all goals for a user
+   * @param clerkUserId - Clerk user ID that will be mapped to Supabase UUID
    */
-  static async getGoalsByUserId(userId: string): Promise<SavingsGoal[]> {
+  static async getGoalsByUserId(clerkUserId: string): Promise<SavingsGoal[]> {
     try {
-      console.log('🔄 Fetching goals for user:', userId);
+      console.log('🔄 Fetching goals for Clerk user:', clerkUserId);
+      
+      // First get the Supabase user by Clerk ID
+      const { getSupabaseUserByClerkId } = await import('../clerk-supabase-sync');
+      const supabaseUser = await getSupabaseUserByClerkId(clerkUserId);
+      
+      if (!supabaseUser) {
+        throw new Error('User not found in Supabase. Please sign in again.');
+      }
+      
+      console.log('🔄 Fetching goals for Supabase user:', supabaseUser.id);
       
       const { data: goals, error } = await supabase
         .from('savings_goals')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', supabaseUser.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -31,6 +42,7 @@ export class GoalService {
 
   /**
    * Create a new goal
+   * @param data.userId - Clerk user ID that will be mapped to Supabase UUID
    */
   static async createGoal(data: {
     userId: string;
@@ -53,10 +65,20 @@ export class GoalService {
     autoSaveFrequency?: 'daily' | 'weekly' | 'monthly';
   }): Promise<SavingsGoal> {
     try {
-      console.log('🔄 Creating goal with data:', data);
+      console.log('🔄 Creating goal with Clerk user ID:', data.userId);
+      
+      // First get the Supabase user by Clerk ID
+      const { getSupabaseUserByClerkId } = await import('../clerk-supabase-sync');
+      const supabaseUser = await getSupabaseUserByClerkId(data.userId);
+      
+      if (!supabaseUser) {
+        throw new Error('User not found in Supabase. Please sign in again.');
+      }
+      
+      console.log('🔄 Creating goal for Supabase user:', supabaseUser.id);
       
       const goalData = {
-        user_id: data.userId,
+        user_id: supabaseUser.id,
         title_tn: data.titleTn,
         title_en: data.titleEn,
         title_fr: data.titleFr,

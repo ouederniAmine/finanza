@@ -6,10 +6,15 @@ import { useUser } from '@clerk/clerk-expo';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { Alert, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import PlanningSegmentedBar from '../../../components/PlanningSegmentedBar';
+import PlanningSwipeWrapper from '../../../components/PlanningSwipeWrapper';
+import PlanningSurface from '@/components/PlanningSurface';
+import { PlusButton } from '@/components/PlusButton';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DebtsScreen() {
   const { user } = useUser();
+  const insets = useSafeAreaInsets();
   const [debts, setDebts] = useState<DebtData[]>([]);
   const [debtSummary, setDebtSummary] = useState<DebtSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -194,7 +199,7 @@ export default function DebtsScreen() {
       Alert.alert(t('debts.error', language), t('debts.invalid_amount', language));
       return;
     }
-
+    if (!selectedDebtForAction) return; // safety
     if (amount > selectedDebtForAction.remaining_amount) {
       Alert.alert(t('debts.error', language), t('debts.amount_exceeds', language));
       return;
@@ -202,13 +207,13 @@ export default function DebtsScreen() {
 
     try {
       setProcessing(true);
-      console.log('💸 Processing payment:', { debtId: selectedDebtForAction.id, amount });
+  console.log('💸 Processing payment:', { debtId: selectedDebtForAction!.id, amount });
 
-      const updatedDebt = await DebtService.makePayment(selectedDebtForAction.id, amount);
+  const updatedDebt = await DebtService.makePayment(selectedDebtForAction!.id, amount);
       
       // Update local state
       setDebts(prev => prev.map(debt => 
-        debt.id === selectedDebtForAction.id ? updatedDebt : debt
+        debt.id === selectedDebtForAction!.id ? updatedDebt : debt
       ));
 
       setShowPaymentModal(false);
@@ -306,198 +311,117 @@ export default function DebtsScreen() {
 
   const netBalance = totalTheyOwe - totalIOwe;
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { textAlign }]}>
-          {t('navigation.debts', language)}
-        </Text>
-        <Text style={[styles.headerSubtitle, { textAlign }]}>
-          {debts.length} {t('debts.active_debts', language)}
-        </Text>
-      </View>
+  const heroAmount = `${debts.length} ${t('debts.active_debts', language)}`;
+  const PALETTE = ['#EED4C4','#C2E0C4','#F4C3AA','#BADADA','#F4CBD8'];
 
+  const surfaceContent = (
+    <>
       {/* Summary Cards */}
-      <View style={styles.summaryContainer}>
-        <View style={[styles.summaryCard, styles.iOweCard]}>
-          <Text style={[styles.summaryValue, { color: '#FF6B6B' }]}>
-            {formatCurrency(totalIOwe, currency, language)}
-          </Text>
-          <Text style={styles.summaryLabel}>{t('debts.i_owe', language)}</Text>
+      <View style={newStyles.summaryRow}>
+        <View style={[newStyles.metricCard, { borderLeftColor: '#FF6B6B' }]}> 
+          <Text style={newStyles.metricLabel}>{t('debts.i_owe', language)}</Text>
+          <Text style={newStyles.metricValue}>{formatCurrency(totalIOwe, currency, language)}</Text>
         </View>
-        <View style={[styles.summaryCard, styles.theyOweCard]}>
-          <Text style={[styles.summaryValue, { color: '#4ECDC4' }]}>
-            {formatCurrency(totalTheyOwe, currency, language)}
-          </Text>
-          <Text style={styles.summaryLabel}>{t('debts.they_owe', language)}</Text>
+        <View style={[newStyles.metricCard, { borderLeftColor: '#10B981' }]}> 
+          <Text style={newStyles.metricLabel}>{t('debts.they_owe', language)}</Text>
+          <Text style={newStyles.metricValue}>{formatCurrency(totalTheyOwe, currency, language)}</Text>
         </View>
-        <View style={[styles.summaryCard, styles.netCard]}>
-          <Text style={[styles.summaryValue, { color: netBalance >= 0 ? '#4ECDC4' : '#FF6B6B' }]}>
-            {netBalance >= 0 ? '+' : ''}{formatCurrency(netBalance, currency, language)}
-          </Text>
-          <Text style={styles.summaryLabel}>{t('debts.net_balance', language)}</Text>
+        <View style={[newStyles.metricCard, { borderLeftColor: netBalance >= 0 ? '#10B981' : '#FF6B6B' }]}> 
+          <Text style={newStyles.metricLabel}>{t('debts.net_balance', language)}</Text>
+          <Text style={newStyles.metricValue}>{`${netBalance >= 0 ? '+' : ''}${formatCurrency(netBalance, currency, language)}`}</Text>
         </View>
       </View>
 
-      {/* Filter Tabs */}
-      <View style={styles.filterContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          {filters.map((filter) => (
-            <TouchableOpacity
-              key={filter.key}
-              style={[
-                styles.filterTab,
-                selectedFilter === filter.key && styles.activeFilterTab
-              ]}
-              onPress={() => setSelectedFilter(filter.key)}
-            >
-              <Text style={[
-                styles.filterTabText,
-                selectedFilter === filter.key && styles.activeFilterTabText
-              ]}>
-                {filter.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+      {/* Filters */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={newStyles.filterScroll}>
+        {filters.map((filter) => (
+          <TouchableOpacity
+            key={filter.key}
+            style={[newStyles.filterChip, selectedFilter === filter.key && newStyles.filterChipActive]}
+            onPress={() => setSelectedFilter(filter.key)}
+          >
+            <Text style={[newStyles.filterChipText, selectedFilter === filter.key && newStyles.filterChipTextActive]}>{filter.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Actions */}
+      <View style={newStyles.actionsRow}>
+        <TouchableOpacity style={newStyles.actionPill} onPress={handleAddDebt}>
+          <Text style={newStyles.actionPillText}>➕ {t('debts.add_debt', language)}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={newStyles.actionPill} onPress={() => {
+          const unsettledDebts = debts.filter(d => !d.is_settled);
+          if (unsettledDebts.length === 0) {
+            Alert.alert(t('debts.no_debts_available', language), t('debts.no_debts_to_settle', language));
+            return;
+          }
+          handleSettleDebt(unsettledDebts[0]);
+        }}>
+          <Text style={newStyles.actionPillText}>💸 {t('debts.settle_debt', language)}</Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
+      {/* Debts List */}
+      <View style={newStyles.listContainer}>
         {loading ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>⏳</Text>
-            <Text style={styles.emptyTitle}>
-              {t('common.loading', language)}
-            </Text>
+          <View style={newStyles.emptyState}> 
+            <Text style={newStyles.emptyEmoji}>⏳</Text>
+            <Text style={newStyles.emptyTitle}>{t('common.loading', language)}</Text>
+          </View>
+        ) : filteredDebts.length === 0 ? (
+          <View style={newStyles.emptyState}> 
+            <Text style={newStyles.emptyEmoji}>📝</Text>
+            <Text style={newStyles.emptyTitle}>{t('debts.no_debts', language)}</Text>
+            <Text style={newStyles.emptySubtitle}>{t('debts.no_debts_desc', language)}</Text>
           </View>
         ) : (
-          <>
-            {/* Quick Actions */}
-            <View style={styles.quickActionsContainer}>
-              <TouchableOpacity 
-                style={styles.quickActionButton}
-                onPress={handleAddDebt}
-              >
-                <View style={styles.quickActionIcon}>
-                  <Text style={styles.quickActionEmoji}>➕</Text>
-                </View>
-            <Text style={styles.quickActionText}>{t('debts.add_debt', language)}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.quickActionButton}
-            onPress={() => {
-              // Show list of debts to settle
-              const unsettledDebts = debts.filter(debt => !debt.is_settled);
-              if (unsettledDebts.length === 0) {
-                Alert.alert(t('debts.no_debts_available', language), t('debts.no_debts_to_settle', language));
-                return;
-              }
-              // For now, just settle the first unsettled debt as example
-              handleSettleDebt(unsettledDebts[0]);
-            }}
-          >
-            <View style={styles.quickActionIcon}>
-              <Text style={styles.quickActionEmoji}>💸</Text>
-            </View>
-            <Text style={styles.quickActionText}>{t('debts.settle_debt', language)}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.quickActionButton}
-            onPress={() => Alert.alert(t('debts.coming_soon', language), t('debts.reminder_feature', language))}
-          >
-            <View style={styles.quickActionIcon}>
-              <Text style={styles.quickActionEmoji}>📧</Text>
-            </View>
-            <Text style={styles.quickActionText}>{t('debts.send_reminder', language)}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Debts List */}
-        <View style={styles.debtsContainer}>
-          {filteredDebts.map((debt) => (
-            <TouchableOpacity key={debt.id} style={styles.debtItem}>
-              <View style={styles.debtLeft}>
-                <View 
-                  style={[
-                    styles.debtIcon,
-                    { backgroundColor: `${getDebtColor(debt)}15` }
-                  ]}
-                >
-                  <Text style={styles.debtEmoji}>{getDebtIcon(debt)}</Text>
-                </View>
-                <View style={styles.debtInfo}>
-                  <View style={styles.debtHeader}>
-                    <Text style={styles.debtPerson}>{getPersonName(debt)}</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(debt)}15` }]}>
-                      <Text style={[styles.statusText, { color: getStatusColor(debt) }]}>
-                        {getStatusText(debt)}
-                      </Text>
+          filteredDebts.map((debt, index) => {
+            const bgColor = PALETTE[index % PALETTE.length];
+            return (
+              <View key={debt.id} style={[newStyles.debtRow,{backgroundColor:bgColor}]}> 
+                <View style={newStyles.debtLeft}>
+                  <View style={[newStyles.debtEmojiWrap, { backgroundColor: `${getDebtColor(debt)}20` }]}> 
+                    <Text style={newStyles.debtEmoji}>{getDebtIcon(debt)}</Text>
+                  </View>
+                  <View style={newStyles.debtInfo}> 
+                    <Text style={newStyles.debtPerson}>{getPersonName(debt)}</Text>
+                    <Text style={newStyles.debtDesc}>{debt.description_tn || debt.description_en || t('debts.no_description', language)}</Text>
+                    <View style={newStyles.debtMetaRow}> 
+                      <Text style={newStyles.debtMetaText}>{getDebtCategory(debt)}</Text>
+                      <Text style={newStyles.debtMetaText}>{getFormattedDate(debt.debt_date)}</Text>
                     </View>
                   </View>
-                  <Text style={styles.debtDescription}>{debt.description_tn || debt.description_en || t('debts.no_description', language)}</Text>
-                  <View style={styles.debtMeta}>
-                    <Text style={styles.debtCategory}>{getDebtCategory(debt)}</Text>
-                    <Text style={styles.debtDate}>{getFormattedDate(debt.debt_date)}</Text>
-                  </View>
-                  {debt.due_date && (
-                    <Text style={[
-                      styles.debtDueDate,
-                      { color: getStatusForComparison(debt) === 'overdue' ? '#EF4444' : '#6B7280' }
-                    ]}>
-                      {t('debts.due', language)}: {new Date(debt.due_date).toLocaleDateString()}
-                    </Text>
-                  )}
+                </View>
+                <View style={newStyles.debtRight}> 
+                  <Text style={[newStyles.debtAmount, { color: getDebtColor(debt) }]}>{getDebtSign(debt)}{formatCurrency(debt.remaining_amount, currency, language)}</Text>
+                  <TouchableOpacity style={[newStyles.debtActionBtn, { backgroundColor: getDebtColor(debt) }]} onPress={() => debt.debt_type === 'i_owe' ? handlePayDebt(debt) : handleSettleDebt(debt)}>
+                    <Text style={newStyles.debtActionText}>{debt.debt_type === 'i_owe' ? t('debts.pay', language) : t('debts.settle', language)}</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
-              <View style={styles.debtRight}>
-                <Text 
-                  style={[
-                    styles.debtAmount,
-                    { color: getDebtColor(debt) }
-                  ]}
-                >
-                  {getDebtSign(debt)}{formatCurrency(debt.remaining_amount, currency, language)}
-                </Text>
-                <TouchableOpacity 
-                  style={[styles.actionButton, { backgroundColor: getDebtColor(debt) }]}
-                  onPress={() => {
-                    if (debt.debt_type === 'i_owe') {
-                      handlePayDebt(debt);
-                    } else {
-                      handleSettleDebt(debt);
-                    }
-                  }}
-                >
-                  <Text style={styles.actionButtonText}>
-                    {debt.debt_type === 'i_owe' ? t('debts.pay', language) : t('debts.settle', language)}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+            );
+          })
+        )}
+      </View>
+    </>
+  );
 
-        {filteredDebts.length === 0 && (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>📝</Text>
-            <Text style={styles.emptyTitle}>
-              {t('debts.no_debts', language)}
-            </Text>
-            <Text style={styles.emptyDescription}>
-              {t('debts.no_debts_desc', language)}
-            </Text>
-          </View>
-        )}
-          </>
-        )}
-      </ScrollView>
+  return (
+    <PlanningSwipeWrapper>
+      <PlanningSurface
+        title={t('navigation.debts', language)}
+        subtitle={t('debts.manage_your_debts', language) || ''}
+        amountLine={heroAmount}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        topExtra={<PlanningSegmentedBar />}
+      >
+        {surfaceContent}
+      </PlanningSurface>
+      <View style={[newStyles.fabRootWrapper, { bottom: insets.bottom + 96 }]} pointerEvents="box-none">
+        <PlusButton onPress={handleAddDebt} />
+      </View>
 
       {/* Add Debt Drawer */}
       <AddTransactionDrawerPerfect
@@ -620,262 +544,12 @@ export default function DebtsScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </PlanningSwipeWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FAFBFC',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-    backgroundColor: '#FAFBFC',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
-  summaryContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    gap: 12,
-  },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  iOweCard: {
-    borderTopWidth: 3,
-    borderTopColor: '#FF6B6B',
-  },
-  theyOweCard: {
-    borderTopWidth: 3,
-    borderTopColor: '#4ECDC4',
-  },
-  netCard: {
-    borderTopWidth: 3,
-    borderTopColor: '#667EEA',
-  },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  filterContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  filterScroll: {
-    flexDirection: 'row',
-  },
-  filterTab: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  activeFilterTab: {
-    backgroundColor: '#667EEA',
-  },
-  filterTabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  activeFilterTabText: {
-    color: '#FFFFFF',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  quickActionsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    gap: 12,
-  },
-  quickActionButton: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  quickActionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  quickActionEmoji: {
-    fontSize: 18,
-  },
-  quickActionText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1F2937',
-    textAlign: 'center',
-  },
-  debtsContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  debtItem: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  debtLeft: {
-    flexDirection: 'row',
-    flex: 1,
-  },
-  debtIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  debtEmoji: {
-    fontSize: 20,
-  },
-  debtInfo: {
-    flex: 1,
-  },
-  debtHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  debtPerson: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  debtDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  debtMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  debtCategory: {
-    fontSize: 12,
-    color: '#667EEA',
-    fontWeight: '500',
-    marginRight: 8,
-  },
-  debtDate: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  debtDueDate: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  debtRight: {
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    marginLeft: 12,
-  },
-  debtAmount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  actionButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  actionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyEmoji: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-  },
-  // Modal styles
+  // Modal styles (unchanged below)
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -968,4 +642,101 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+});
+
+const newStyles = StyleSheet.create({
+  fabRootWrapper: {
+    position: 'absolute',
+    right: 24,
+    zIndex: 100,
+    elevation: 20,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 28,
+  },
+  metricCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 14,
+    borderLeftWidth: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  metricValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  filterScroll: { marginBottom: 20 },
+  filterChip: {
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 22,
+    marginRight: 10,
+  },
+  filterChipActive: { backgroundColor: '#754E51' },
+  filterChipText: { fontSize: 13, color: '#1F2937', fontWeight: '500' },
+  filterChipTextActive: { color: '#FFFFFF' },
+  actionsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  actionPill: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  actionPillText: { fontSize: 13, fontWeight: '600', color: '#1F2937' },
+  listContainer: { gap: 14 },
+  debtRow: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  debtLeft: { flex: 1, flexDirection: 'row' },
+  debtEmojiWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  debtEmoji: { fontSize: 20 },
+  debtInfo: { flex: 1 },
+  debtPerson: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 2 },
+  debtDesc: { fontSize: 12, color: '#6B7280', marginBottom: 6 },
+  debtMetaRow: { flexDirection: 'row', gap: 12 },
+  debtMetaText: { fontSize: 11, color: '#6B7280' },
+  debtRight: { alignItems: 'flex-end', justifyContent: 'space-between', marginLeft: 12 },
+  debtAmount: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
+  debtActionBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  debtActionText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+  emptyState: { alignItems: 'center', paddingVertical: 40 },
+  emptyEmoji: { fontSize: 40, marginBottom: 12 },
+  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 4 },
+  emptySubtitle: { fontSize: 13, color: '#6B7280', textAlign: 'center' },
 });

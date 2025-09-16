@@ -17,10 +17,17 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import PlanningSegmentedBar from '../../../components/PlanningSegmentedBar';
 import Svg, { Circle, Defs, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
+import PlanningSwipeWrapper from '@/components/PlanningSwipeWrapper';
+import PlanningSurface from '@/components/PlanningSurface';
+import { PlusButton } from '@/components/PlusButton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Pastel palette shared across planning screens
+const PALETTE = ['#EED4C4','#C2E0C4','#F4C3AA','#BADADA','#F4CBD8'];
 
 // Helper function to get localized title
 const getLocalizedTitle = (goal: SavingsGoal, language: string): string => {
@@ -44,6 +51,7 @@ const calculateMonthlyTarget = (goal: SavingsGoal): number => {
 export default function SavingsScreen() {
   const { language } = useUIStore();
   const { user } = useUser();
+  const insets = useSafeAreaInsets();
   const textAlign = getTextAlign(language);
   const currency = getCurrency(language);
   const [refreshing, setRefreshing] = useState(false);
@@ -194,7 +202,7 @@ export default function SavingsScreen() {
     );
   };
 
-  const renderGoalCard = (goal: SavingsGoal) => {
+  const renderGoalCard = (goal: SavingsGoal, index: number) => {
     const progress = goal.target_amount > 0 ? (goal.current_amount / goal.target_amount) * 100 : 0;
     const remaining = goal.target_amount - goal.current_amount;
     const targetDate = goal.target_date ? new Date(goal.target_date) : null;
@@ -202,11 +210,12 @@ export default function SavingsScreen() {
       ? Math.max(1, Math.ceil((targetDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24 * 30)))
       : 12;
     const monthlyTarget = calculateMonthlyTarget(goal);
+    const paletteColor = PALETTE[index % PALETTE.length];
 
     return (
       <TouchableOpacity
         key={goal.id}
-        style={styles.goalCard}
+        style={[styles.goalCard, { backgroundColor: paletteColor }]}
         onPress={() => setSelectedGoal(goal)}
       >
         <View style={styles.goalHeader}>
@@ -390,64 +399,52 @@ export default function SavingsScreen() {
     );
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <View style={styles.header}>
-          <Text style={[styles.title, { textAlign }]}>
-            {t('savings.title', language)}
-          </Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowAddGoalDrawer(true)}
-          >
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
+  const heroAmount = `${savingsGoals.length} ${t('savings.active_goals', language)}`;
+
+  const surfaceInner = (
+    <>
+      {loading ? (
+        <View style={newStyles.loadingWrap}>
+          <Text style={newStyles.loadingText}>{t('common.loading', language)}</Text>
         </View>
-
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <Text style={[styles.loadingText, { textAlign }]}>{t('common.loading', language)}</Text>
+      ) : (
+        <>
+          {renderOverallProgress()}
+          <View style={newStyles.sectionHeaderRow}>
+            <Text style={newStyles.sectionHeader}>Savings Goals</Text>
+            <TouchableOpacity onPress={() => setShowAddGoalDrawer(true)}>
+              <Text style={newStyles.linkAdd}>{t('savings.add_goal', language) || '+'}</Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          <>
-            {renderOverallProgress()}
-
-            <View style={styles.goalsSection}>
-              <Text style={[styles.sectionTitle, { textAlign }]}>{t('savings.your_goals', language)}</Text>
-              {savingsGoals.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Text style={[styles.emptyText, { textAlign }]}>
-                    {t('savings.no_goals', language)}
-                  </Text>
-                  <Text style={[styles.emptySubtext, { textAlign }]}>
-                    {t('savings.create_first_goal', language)}
-                  </Text>
-                </View>
-              ) : (
-                savingsGoals.map(renderGoalCard)
-              )}
+          {savingsGoals.length === 0 ? (
+            <View style={newStyles.emptyBox}>
+              <Text style={newStyles.emptyBoxTitle}>{t('savings.no_goals', language)}</Text>
+              <Text style={newStyles.emptyBoxSub}>{t('savings.create_first_goal', language)}</Text>
             </View>
-          </>
-        )}
-      </ScrollView>
+          ) : (
+            savingsGoals.map((g, i) => renderGoalCard(g, i))
+          )}
+        </>
+      )}
+    </>
+  );
 
-      {renderGoalModal()}
-      
-      <AddGoalDrawer
-        visible={showAddGoalDrawer}
-        onClose={() => setShowAddGoalDrawer(false)}
-        onGoalCreated={() => {
-          setShowAddGoalDrawer(false);
-          loadSavingsData(); // Reload data after creating goal
-        }}
-      />
-    </SafeAreaView>
+  return (
+    <PlanningSwipeWrapper>
+      <PlanningSurface
+        title={t('savings.title', language)}
+        subtitle={t('savings.total_progress', language)}
+        amountLine={heroAmount}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        topExtra={<PlanningSegmentedBar />}
+      >
+        {surfaceInner}
+      </PlanningSurface>
+      <View style={[newStyles.fabRootWrapper, { bottom: insets.bottom + 96 }]} pointerEvents="box-none">
+        <PlusButton onPress={() => setShowAddGoalDrawer(true)} />
+      </View>
+    </PlanningSwipeWrapper>
   );
 }
 
@@ -814,4 +811,21 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
   },
+});
+
+const newStyles = StyleSheet.create({
+  fabRootWrapper: {
+    position: 'absolute',
+    right: 24,
+    zIndex: 100,
+    elevation: 20,
+  },
+  loadingWrap: { alignItems: 'center', paddingVertical: 40 },
+  loadingText: { fontSize: 16, color: '#1e293b' },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  sectionHeader: { fontSize: 18, fontWeight: '600', color: '#1e293b' },
+  linkAdd: { fontSize: 14, color: '#754E51', fontWeight: '600' },
+  emptyBox: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 32, alignItems: 'center', marginBottom: 24 },
+  emptyBoxTitle: { fontSize: 16, fontWeight: '600', color: '#1e293b', marginBottom: 6 },
+  emptyBoxSub: { fontSize: 13, color: '#64748b', textAlign: 'center' },
 });

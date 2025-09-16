@@ -9,10 +9,10 @@
   ],
   "servers": {
     "supabase": {
-      "command": "cmd",
-      "args": ["/c", "npx", "-y", "@supabase/mcp-server-supabase@latest",  "--project-ref=fymmmhgwzobdcihjwwkl"],
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp-server-supabase@latest", "--read-only", "--project-ref=mwuicuwwadpakfvfzvht"],
       "env": {
-        "SUPABASE_ACCESS_TOKEN": "sbp_17cd65c9883fc2ec2e3af98811e749df735aa6ff"
+        "SUPABASE_ACCESS_TOKEN": "${input:supabase-access-token}"
       }
     }
   }

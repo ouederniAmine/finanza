@@ -1,7 +1,7 @@
 import AddGoalDrawer from '@/components/AddGoalDrawer';
 import { formatCurrency, getCurrency, getTextAlign, t } from '@/lib/i18n';
+import { GoalService } from '@/lib/services/goal.service';
 import { useUIStore } from '@/lib/store';
-import { supabase } from '@/lib/supabase';
 import { useUser } from '@clerk/clerk-expo';
 import { useFocusEffect } from '@react-navigation/native';
 import { router, Stack } from 'expo-router';
@@ -50,39 +50,33 @@ export default function GoalsScreen() {
     if (!user?.id) return;
 
     try {
-      const { data, error } = await supabase
-        .from('savings_goals')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_achieved', false)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching goals:', error);
-        return;
-      }
+      // Use GoalService to properly handle Clerk ID to UUID mapping
+      const allGoals = await GoalService.getGoalsByUserId(user.id);
+      
+      // Filter for non-achieved goals (since GoalService gets all goals)
+      const data = allGoals.filter(goal => !goal.is_achieved);
 
       if (data) {
-        const formattedGoals: Goal[] = data.map((dbGoal: DBGoal) => {
+        const formattedGoals: Goal[] = data.map((goal) => {
           // Get the title based on current language
           const getTitle = () => {
             switch (language) {
-              case 'fr': return dbGoal.title_fr || dbGoal.title_en;
-              case 'tn': return dbGoal.title_tn || dbGoal.title_en;
-              default: return dbGoal.title_en;
+              case 'fr': return goal.title_fr || goal.title_en || goal.title_tn || 'Goal';
+              case 'tn': return goal.title_tn || goal.title_en || goal.title_fr || 'Goal';
+              default: return goal.title_en || goal.title_tn || goal.title_fr || 'Goal';
             }
           };
 
           return {
-            id: dbGoal.id,
+            id: goal.id,
             name: getTitle(),
-            current: parseFloat(dbGoal.current_amount),
-            target: parseFloat(dbGoal.target_amount),
-            icon: dbGoal.icon,
-            color: dbGoal.color,
-            category: t(`goals.priority.${dbGoal.priority}`, language) || dbGoal.priority,
-            deadline: dbGoal.target_date 
-              ? new Date(dbGoal.target_date).toLocaleDateString(language === 'en' ? 'en-US' : language === 'fr' ? 'fr-FR' : 'ar-TN')
+            current: goal.current_amount,
+            target: goal.target_amount,
+            icon: goal.icon,
+            color: goal.color,
+            category: t(`goals.priority.${goal.priority}`, language) || goal.priority,
+            deadline: goal.target_date 
+              ? new Date(goal.target_date).toLocaleDateString(language === 'en' ? 'en-US' : language === 'fr' ? 'fr-FR' : 'ar-TN')
               : t('goals.ongoing', language) || 'Ongoing',
             description: t('goals.description_placeholder', language) || 'Working towards this goal',
           };

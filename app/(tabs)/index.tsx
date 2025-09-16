@@ -5,7 +5,8 @@ import { useUIStore } from '@/lib/store';
 import { useUser } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Dimensions, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View, I18nManager } from 'react-native';
+import { Colors } from '@/constants/Colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Polyline, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
 
@@ -615,8 +616,32 @@ export default function DashboardScreen() {
     return icons[index] || '📊';
   };
 
+  // TODO: integrate real color scheme hook if available (useColorScheme)
+  const theme = Colors.light; // placeholder; could switch based on system or user setting
+
+  // Determine if current language should be treated as RTL. 'tn' (Tunisian Arabic) might map to Arabic script but if your UI strings are Latin you may want LTR.
+  const RTL_LANGS = ['ar', 'he', 'fa', 'ur'];
+  const isRTL = RTL_LANGS.includes(language) || I18nManager.isRTL;
+  if (__DEV__) {
+    // Debug once per render for orientation issues
+    // eslint-disable-next-line no-console
+    console.log('[Dashboard RTL Debug]', { language, whitelistRTL: RTL_LANGS.includes(language), deviceRTL: I18nManager.isRTL, finalIsRTL: isRTL });
+  }
+
+  // === Responsive sizing logic ===
+  const baseScreenWidth = 393; // reference (e.g., iPhone 14 Pro)
+  const scale = Math.min(1.2, Math.max(0.8, SCREEN_WIDTH / baseScreenWidth));
+  // Parent card target 364x136 at base width
+  const overlayWidth = Math.min(SCREEN_WIDTH - 32, 364 * scale);
+  const overlayHeight = 136 * Math.min(1.05, scale * 1.02); // slight adjustment
+  const miniCardWidth = (overlayWidth - 12 * 2 - 12) / 2; // paddingHorizontal*2 + gap (approx 12) removed
+  const miniCardHeight = 105 * Math.min(1.1, scale * 1.05);
+  const iconSize = 34 * scale;
+  const titleFontSize = 16 * Math.min(1.05, scale * 1.02);
+  const amountFontSize = 14 * Math.min(1.05, scale * 1.02);
+
   return (
-    <SafeAreaView style={styles.container}>
+  <SafeAreaView style={[styles.container, { backgroundColor: '#EAD9C9' }] }>
       <ScrollView 
         style={styles.scrollView}
         refreshControl={
@@ -624,62 +649,104 @@ export default function DashboardScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={[styles.header, { flexDirection: language === 'tn' ? 'row-reverse' : 'row' }]}>
-          <TouchableOpacity 
-            style={styles.profileButton}
-            onPress={() => router.push('/profile')}
-          >
-            <Text style={styles.profileIcon}>👤</Text>
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={[styles.greeting, { textAlign }]}>{getGreeting()}</Text>
-            <Text style={[styles.userName, { textAlign }]}>{clerkUser?.fullName || t('dashboard.user_name', language)}</Text>
+        {/* Full-width Header Card */}
+        <View style={[styles.balanceCard, { flexDirection: 'column', backgroundColor: theme.primary }]}>
+          <View style={[styles.headerInCard, isRTL ? styles.rtlRow : styles.ltrRow]}>
+            {/* Profile + Text */}
+            <View style={styles.profileAndTextRow}>
+              <TouchableOpacity 
+                style={styles.profileButtonInCard}
+                onPress={() => router.push('/profile')}
+              >
+                <Text style={styles.profileIconInCard}>👤</Text>
+              </TouchableOpacity>
+              <View style={styles.profileTextColumn}>
+                <Text style={styles.greetingCustom}>{getGreeting()}</Text>
+                <Text style={styles.userNameCustom}>{clerkUser?.fullName || t('dashboard.user_name', language)}</Text>
+              </View>
+            </View>
+            {/* Notification */}
+            <TouchableOpacity style={styles.notificationButtonInCard}>
+              <Text style={styles.notificationIconInCard}>🔔</Text>
+              <View style={styles.notificationBadgeInCard} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Text style={styles.notificationIcon}>🔔</Text>
-            <View style={styles.notificationBadge} />
-          </TouchableOpacity>
+          {/* Left aligned balance */}
+          <View style={[styles.balanceLeftBlock, styles.forceLeft]}>
+            <Text style={[styles.totalBalanceLabelCustom, { color: theme.primaryContrast, textAlign: 'left' }]}>{t('dashboard.total_balance', language)}</Text>
+            <Text style={[styles.totalBalanceAmountCustom, { color: theme.primaryContrast, textAlign: 'left' }]}>{formatCurrency(user.totalBalance, currency, language)}</Text>
+          </View>
         </View>
 
-        {/* Total Balance */}
-        <View style={styles.balanceContainer}>
-          <Text style={[styles.balanceLabel, { textAlign }]}>
-            {t('dashboard.total_balance', language)}
-          </Text>
-          <Text style={[styles.balanceAmount, { textAlign }]}>
-            {formatCurrency(user.totalBalance, currency, language)}
-          </Text>
-          {(user.monthlyIncome || user.initialBalance || 0) > 0 && (
-            <Text style={[styles.balanceBreakdown, { textAlign }]}>
-              {t('dashboard.balance_breakdown', language)}: {formatCurrency(user.initialBalance || 0, currency, language)} + {formatCurrency(user.monthlyIncome || 0, currency, language)} + {formatCurrency((user.income || 0) - (user.expenses || 0), currency, language)}
-            </Text>
-          )}
+        {/* Overlay Parent Card for Assets & Liabilities */}
+        <View style={styles.assetsOverlayWrapper}>
+          <View style={[styles.assetsOverlayCard, { backgroundColor: '#ECE0D6', width: overlayWidth, height: overlayHeight }]}>
+            <View style={[styles.dualStatsRow, { gap: 12 }]}>
+              {/* Assets mini card */}
+              <View style={[styles.miniStatCard, { backgroundColor: '#FFFFFF', borderWidth: 0, width: miniCardWidth, height: miniCardHeight }] }>
+                <View style={[styles.miniHeaderRow, { marginBottom: 4 }]}>
+                  <View style={[styles.miniIconCircle, { backgroundColor: '#F2FFE9', width: iconSize, height: iconSize, borderRadius: iconSize / 2 }]}>
+                    <Text style={[styles.miniIconEmoji, { fontSize: iconSize * 0.53 }]}>💰</Text>
+                  </View>
+                  <View style={{ flexDirection: 'column' }}>
+                    <Text style={[styles.miniTitle, { fontSize: titleFontSize } ]}>Assets</Text>
+                    <Text style={[styles.miniAmount, { fontSize: amountFontSize } ]}>{formatCurrency((user.income||0)+(user.totalBalance||0), currency, language)}</Text>
+                  </View>
+                </View>
+                <View style={styles.miniDetailsBlock}>
+                  <View style={styles.miniDetailRow}>
+                    <Text style={styles.miniDetailLabel}>Income:</Text>
+                    <Text style={styles.miniDetailValue}>{formatCurrency(user.income||0, currency, language)}</Text>
+                  </View>
+                  <View style={styles.miniDetailRow}>
+                    <Text style={styles.miniDetailLabel}>Saving:</Text>
+                    <Text style={styles.miniDetailValue}>{formatCurrency(user.totalBalance||0, currency, language)}</Text>
+                  </View>
+                </View>
+              </View>
+              {/* Liabilities mini card */}
+              <View style={[styles.miniStatCard, { backgroundColor: '#FFFFFF', borderWidth: 0, width: miniCardWidth, height: miniCardHeight }] }>
+                <View style={[styles.miniHeaderRow, { marginBottom: 4 }]}>
+                  <View style={[styles.miniIconCircle, { backgroundColor: '#FFEFF0', width: iconSize, height: iconSize, borderRadius: iconSize / 2 }]}>
+                    <Text style={[styles.miniIconEmoji, { fontSize: iconSize * 0.53 }]}>💳</Text>
+                  </View>
+                  <View style={{ flexDirection: 'column' }}>
+                    <Text style={[styles.miniTitle, { fontSize: titleFontSize }]}>Liabilities</Text>
+                    <Text style={[styles.miniAmount, { fontSize: amountFontSize }]}>{formatCurrency(user.expenses||0, currency, language)}</Text>
+                  </View>
+                </View>
+                <View style={styles.miniDetailsBlock}>
+                  <View style={styles.miniDetailRow}>
+                    <Text style={styles.miniDetailLabel}>expenses:</Text>
+                    <Text style={styles.miniDetailValue}>{formatCurrency(user.expenses||0, currency, language)}</Text>
+                  </View>
+                  <View style={styles.miniDetailRow}>
+                    <Text style={styles.miniDetailLabel}>debts:</Text>
+                    <Text style={styles.miniDetailValue}>{formatCurrency(0, currency, language)}</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
         </View>
 
-        {/* Income & Expense Cards */}
-        <View style={styles.cardRow}>
-          <View style={[styles.card, styles.incomeCard]}>
-            <View style={styles.cardIcon}>
-              <Text style={styles.cardIconText}>📈</Text>
-            </View>
-            <Text style={styles.cardLabel}>{t('dashboard.income', language)}</Text>
-            <Text style={styles.cardAmount}>{formatCurrency(user.income, currency, language)}</Text>
-          </View>
-          
-          <View style={[styles.card, styles.expenseCard]}>
-            <View style={styles.cardIcon}>
-              <Text style={styles.cardIconText}>📉</Text>
-            </View>
-            <Text style={styles.cardLabel}>{t('dashboard.expenses', language)}</Text>
-            <Text style={styles.cardAmount}>{formatCurrency(user.expenses, currency, language)}</Text>
-          </View>
+        {/* Quick Actions */}
+        <View style={styles.quickActionsContainer}>
+          <TouchableOpacity style={styles.quickActionIncoming}>
+            <Text style={styles.quickActionIncomingText}>Incoming debts</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionBills}>
+            <Text style={styles.quickActionBillsText}>Bills</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionThings}>
+            <Text style={styles.quickActionThingsText}>Things</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Charts Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { textAlign }]}>
+            <Text style={[styles.sectionTitle, { textAlign, color: theme.primary }]}> 
               {t('dashboard.analytics', language)}
             </Text>
             <TouchableOpacity style={styles.periodButton}>
@@ -734,7 +801,7 @@ export default function DashboardScreen() {
         {/* Goals */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { textAlign }]}>
+            <Text style={[styles.sectionTitle, { textAlign, color: theme.primary }]}> 
               {t('dashboard.goals', language)}
             </Text>
             <TouchableOpacity onPress={() => router.push('/goals')}>
@@ -802,7 +869,7 @@ export default function DashboardScreen() {
         {/* Recent Transactions */}
         <View style={[styles.section, styles.lastSection]}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { textAlign }]}>
+            <Text style={[styles.sectionTitle, { textAlign, color: theme.primary }]}> 
               {t('dashboard.recent_transactions', language)}
             </Text>
             <TouchableOpacity onPress={() => router.push('/transactions')}>
@@ -870,8 +937,9 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFBFC',
+    backgroundColor: '#EAD9C9',
   },
+  // forceLTR style removed (invalid 'direction' key for RNW); if needed, manage layout via I18nManager
   scrollView: {
     flex: 1,
   },
@@ -882,20 +950,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 16,
-    backgroundColor: '#FAFBFC',
+    backgroundColor: '#F5EBE0',
   },
   profileButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#667EEA',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#5D4037',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
+    shadowColor: '#5D4037',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   profileIcon: {
     fontSize: 20,
-    color: '#FFFFFF',
+    color: '#FEFBF6',
   },
   headerContent: {
     flex: 1,
@@ -903,104 +976,561 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 16,
-    color: '#6B7280',
+    color: '#A1887F',
     marginBottom: 4,
+    fontWeight: '500',
   },
   userName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#5D4037',
   },
   notificationButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#F3F4F6',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FEFBF6',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    shadowColor: '#5D4037',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   notificationIcon: {
     fontSize: 20,
+    color: '#5D4037',
   },
   notificationBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EF4444',
+    top: 10,
+    right: 10,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#D32F2F',
+    shadowColor: '#D32F2F',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  balanceContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    backgroundColor: '#FAFBFC',
+  // New Balance Card with Kawaii Background
+  balanceCard: {
+    width: '100%',
+    alignSelf: 'center',
+    height: 235,
+    marginBottom: 20,
+    borderBottomLeftRadius: 50,
+    borderBottomRightRadius: 50,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    backgroundColor: '#5D4037',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  balanceContent: {
+    alignItems: 'center',
+  },
+  balanceContentLeft: {
+    alignItems: 'flex-start',
+    paddingHorizontal: 8,
   },
   balanceLabel: {
     fontSize: 16,
-    color: '#6B7280',
+    color: '#FFFFFF',
     marginBottom: 8,
+    fontWeight: '500',
+    opacity: 0.9,
+  },
+  balanceLabelLeft: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginBottom: 8,
+    fontWeight: '500',
+    opacity: 0.9,
   },
   balanceAmount: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
-  balanceBreakdown: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 4,
+  balanceAmountLeft: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
-  cardRow: {
+  /* === OVERLAY ASSETS/LIABILITIES SECTION === */
+  assetsOverlayWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: -55, // overlaps header card lightly
+    marginBottom: 28,
+  },
+  assetsOverlayCard: {
+    backgroundColor: '#ECE0D6',
+    borderRadius: 22,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  dualStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  miniStatCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    justifyContent: 'flex-start',
+  },
+  miniHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  miniIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  miniIconEmoji: {
+    fontSize: 18,
+  },
+  miniTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#000',
+    marginRight: 4,
+    fontFamily: 'SourceSansPro-Bold', // ensure this font is loaded; fallback if not
+  },
+  miniAmount: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000',
+    marginTop: 2,
+    marginLeft: 0,
+    fontFamily: 'SourceSansPro-Bold',
+  },
+  miniDetailsBlock: {
+    marginTop: 6,
+    gap: 4,
+  },
+  miniDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  miniDetailLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#000',
+  },
+  miniDetailValue: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#000',
+  },
+  
+  // Cards Container (Side by Side)
+  cardsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    marginBottom: 24,
-    gap: 16,
+    marginBottom: 32,
+    gap: 12,
   },
-  card: {
+  
+  // Half Cards (Assets & Liabilities)
+  halfCard: {
     flex: 1,
-    padding: 20,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    padding: 20,
+    shadowColor: '#5D4037',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
   },
-  incomeCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#4ECDC4',
+  
+  assetsCard: {
+    backgroundColor: '#FEFBF6',
   },
-  expenseCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF6B6B',
+  
+  liabilitiesCard: {
+    backgroundColor: '#FEFBF6',
   },
-  cardIcon: {
+  
+  // Simple Assets List (like img3)
+  simpleAssetsList: {
+    marginTop: 12,
+  },
+  
+  simpleAssetItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  
+  simpleAssetLabel: {
+    fontSize: 14,
+    color: '#5D4037',
+    fontWeight: '500',
+  },
+  
+  simpleAssetValue: {
+    fontSize: 14,
+    color: '#A1887F',
+    fontWeight: '400',
+  },
+  
+  // Header styles inside the card
+  headerInCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  
+  profileButtonInCard: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  profileIconInCard: {
+    fontSize: 20,
+    color: '#FFFFFF',
+  },
+  
+  leftSideHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  headerContentInCard: {
+    marginLeft: 12,
+    alignItems: 'flex-start',
+  },
+  
+  headerTextBlockCustom: {
+    marginTop: 10,
+    alignItems: 'center',
+    width: '100%',
+  },
+  profileAndTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  profileTextColumn: {
+    marginLeft: 12,
+    justifyContent: 'center',
+  },
+  balanceLeftBlock: {
+    width: '100%',
+    alignItems: 'flex-start',
+    marginTop: 40, // pushed further down per request
+    paddingLeft: 4,
+  },
+  ltrRow: {
+    flexDirection: 'row',
+  },
+  rtlRow: {
+    flexDirection: 'row-reverse',
+  },
+  forceLeft: {
+    alignItems: 'flex-start',
+  },
+  greetingCustom: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  userNameCustom: {
+    fontSize: 25,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  totalBalanceLabelCustom: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  totalBalanceAmountCustom: {
+    fontSize: 30,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  
+  notificationButtonInCard: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  
+  notificationIconInCard: {
+    fontSize: 20,
+    color: '#FFFFFF',
+  },
+  
+  notificationBadgeInCard: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#FF4444',
+  },
+  
+  // Quick Actions Styles
+  quickActionsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    gap: 12,
+    alignItems: 'center',
+  },
+  quickActionBase: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 45,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 1.5,
+    elevation: 2,
+    paddingHorizontal: 14,
+  },
+  quickActionIncoming: {
+    width: 144,
+    height: 45,
+    borderRadius: 20,
+    backgroundColor: '#EED4C4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 1.5,
+    elevation: 2,
+  },
+  quickActionBills: {
+    width: 62,
+    height: 45,
+    borderRadius: 20,
+    backgroundColor: '#C2E0C4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 1.5,
+    elevation: 2,
+  },
+  quickActionThings: {
+    width: 81,
+    height: 45,
+    borderRadius: 20,
+    backgroundColor: '#F4C3AA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.25,
+    shadowRadius: 1.5,
+    elevation: 2,
+  },
+  quickActionIncomingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  quickActionBillsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  quickActionThingsText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  // Card Header (keeping for Assets/Liabilities cards)
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  assetIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F0A07B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+    shadowColor: '#5D4037',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  liabilityIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#D32F2F',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+    shadowColor: '#5D4037',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  assetIcon: {
+    fontSize: 28,
+    color: '#FEFBF6',
+  },
+  liabilityIcon: {
+    fontSize: 28,
+    color: '#FEFBF6',
+  },
+  cardTitleContainer: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#5D4037',
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: '#A1887F',
+    fontWeight: '500',
+  },
+  cardMainAmount: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#5D4037',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  assetsScroll: {
+    marginHorizontal: -8,
+  },
+  liabilitiesScroll: {
+    marginHorizontal: -8,
+  },
+  assetItem: {
+    width: 120,
+    backgroundColor: '#FEFBF6',
+    borderRadius: 20,
+    padding: 16,
+    marginHorizontal: 8,
+    alignItems: 'center',
+    shadowColor: '#5D4037',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  liabilityItem: {
+    width: 120,
+    backgroundColor: '#FEFBF6',
+    borderRadius: 20,
+    padding: 16,
+    marginHorizontal: 8,
+    alignItems: 'center',
+    shadowColor: '#5D4037',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  assetItemIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F0A07B',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
-  cardIconText: {
-    fontSize: 18,
+  liabilityItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFCC80',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  cardLabel: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  cardAmount: {
+  assetItemEmoji: {
     fontSize: 20,
+  },
+  liabilityItemEmoji: {
+    fontSize: 20,
+  },
+  assetItemLabel: {
+    fontSize: 12,
+    color: '#A1887F',
+    fontWeight: '500',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  liabilityItemLabel: {
+    fontSize: 12,
+    color: '#A1887F',
+    fontWeight: '500',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  assetItemAmount: {
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#5D4037',
+    textAlign: 'center',
+  },
+  liabilityItemAmount: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#5D4037',
+    textAlign: 'center',
   },
   section: {
     paddingHorizontal: 20,
@@ -1018,43 +1548,49 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#5D4037',
   },
   viewAllText: {
     fontSize: 14,
-    color: '#667EEA',
+    color: '#D32F2F',
     fontWeight: '600',
   },
   periodButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#FEFBF6',
+    borderRadius: 20,
+    shadowColor: '#5D4037',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   periodButtonText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#A1887F',
     marginRight: 4,
+    fontWeight: '500',
   },
   chevronDown: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#A1887F',
   },
   chartContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 6,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    minHeight: 200,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    minHeight: 220,
   },
   chartLabels: {
     flexDirection: 'row',
@@ -1071,19 +1607,21 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   goalCard: {
-    width: 160,
+    width: 170,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginRight: 16,
+    borderRadius: 20,
+    padding: 20,
+    marginRight: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 6,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   firstGoalCard: {
     marginLeft: 0,
@@ -1120,14 +1658,19 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     flex: 1,
-    height: 6,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 3,
-    marginRight: 8,
+    height: 8,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 4,
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 4,
   },
   progressPercent: {
     fontSize: 12,
@@ -1136,15 +1679,17 @@ const styles = StyleSheet.create({
   },
   transactionsContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 6,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#F5F5F5',
   },
   transactionItem: {
     flexDirection: 'row',
@@ -1304,50 +1849,54 @@ const styles = StyleSheet.create({
   },
   chartTabs: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 16,
+    backgroundColor: '#F0A07B',
+    borderRadius: 20,
+    padding: 6,
+    marginBottom: 20,
+    shadowColor: '#5D4037',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   chartTab: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
     alignItems: 'center',
   },
   activeChartTab: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: '#FEFBF6',
+    shadowColor: '#5D4037',
     shadowOffset: {
       width: 0,
-      height: 1,
+      height: 2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
     elevation: 2,
   },
   chartTabText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#FEFBF6',
   },
   activeChartTabText: {
-    color: '#1F2937',
+    color: '#5D4037',
   },
   chartCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
+    backgroundColor: '#FEFBF6',
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#5D4037',
     shadowOffset: {
       width: 0,
       height: 2,
     },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
-    // Removed minHeight to let content determine card size
+    elevation: 3,
   },
   chartHeader: {
     flexDirection: 'row',

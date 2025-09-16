@@ -1,6 +1,6 @@
 import { getTextAlign, t } from '@/lib/i18n';
+import { GoalService } from '@/lib/services/goal.service';
 import { useUIStore } from '@/lib/store';
-import { supabase } from '@/lib/supabase';
 import { useUser } from '@clerk/clerk-expo';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useEffect, useRef, useState } from 'react';
@@ -193,39 +193,26 @@ const AddGoalDrawer: React.FC<AddGoalDrawerProps> = ({ visible, onClose, onGoalC
 
     try {
       // Use the deadline date directly if provided
-      let targetDate = null;
+      let targetDate: string | undefined = undefined;
       if (deadline) {
         targetDate = deadline.toISOString().split('T')[0]; // Format as YYYY-MM-DD
       }
 
-      const { data, error } = await supabase
-        .from('savings_goals')
-        .insert([
-          {
-            user_id: user.id,
-            title_en: goalName.trim(),
-            title_fr: goalName.trim(), // For now, use same name for all languages
-            title_tn: goalName.trim(),
-            target_amount: targetAmountValue,
-            current_amount: currentAmountValue,
-            target_date: targetDate,
-            priority: 'medium', // Default priority
-            icon: selectedCategory.emoji,
-            color: selectedCategory.color,
-            is_achieved: false
-          }
-        ]);
+      // Use GoalService instead of direct Supabase insert to handle Clerk ID to UUID mapping
+      const goal = await GoalService.createGoal({
+        userId: user.id, // This will be mapped to Supabase UUID internally
+        titleTn: goalName.trim(),
+        titleEn: goalName.trim(),
+        titleFr: goalName.trim(), // For now, use same name for all languages
+        targetAmount: targetAmountValue,
+        currentAmount: currentAmountValue,
+        targetDate: targetDate,
+        priority: 'medium', // Default priority
+        icon: selectedCategory.emoji,
+        color: selectedCategory.color,
+      });
 
-      if (error) {
-        console.error('Error creating goal:', error);
-        Alert.alert(
-          t('goals.validation.error_title', language) || 'Error', 
-          error.message || 'Failed to create goal'
-        );
-        return;
-      }
-
-      console.log('Goal created successfully:', data);
+      console.log('Goal created successfully:', goal);
 
       Alert.alert(
         t('goals.success.title', language) || 'Goal Created!',

@@ -7,7 +7,9 @@ import { t } from '@/lib/i18n';
 import { useUIStore } from '@/lib/store';
 import { Tabs } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, View, I18nManager, Dimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors } from '@/constants/Colors';
 
 const TabLayout = React.memo(() => {
   const colorScheme = useColorScheme();
@@ -28,38 +30,58 @@ const TabLayout = React.memo(() => {
     }
   }, [currentRoute]);
 
+  const theme = Colors.light; // TODO: switch on colorScheme
+  const forceLTR = true; // we are enforcing LTR per request
+  const directionStyle = { writingDirection: forceLTR ? 'ltr' : (I18nManager.isRTL ? 'rtl' : 'ltr') } as const;
+  if (__DEV__) {
+  console.log('[Tabs RTL Debug]', { deviceRTL: I18nManager.isRTL, appliedDirection: directionStyle.writingDirection });
+  }
+
+  const insets = useSafeAreaInsets();
+  const screenWidth = Dimensions.get('window').width;
+  const horizontalMargin = 24; // space to edges on small screens
+  const maxBarWidth = 346;
+  const barWidth = Math.min(maxBarWidth, screenWidth - horizontalMargin);
+  const barHeight = 70;
+  const barBottom = Math.max(28, insets.bottom + 12); // raise bar considering safe area
+  const plusSize = 56; // from PlusButton
+  const plusVerticalGap = 18; // larger gap so plus clearly au dessus
+  const rtlLangs = ['ar', 'he', 'fa', 'ur'];
+  const isRtlLang = rtlLangs.includes(language as any);
+  const plusSideOffset = 14; // inset from bar edge
+
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, ...directionStyle }}>
+  {/** Plus button side will be determined inside its own render block below. */}
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: '#10B981',
-          tabBarInactiveTintColor: '#687076',
-          headerShown: false,
-          tabBarButton: HapticTab,
-          tabBarBackground: TabBarBackground,
-          tabBarStyle: Platform.select({
-            ios: {
+          tabBarActiveTintColor: '#754E51',
+            tabBarInactiveTintColor: '#454B55',
+            headerShown: false,
+            tabBarButton: HapticTab,
+            tabBarShowLabel: true,
+            tabBarStyle: {
               position: 'absolute',
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              borderTopWidth: 0,
-              paddingBottom: 20,
-              height: 90,
-            },
-            default: {
-              backgroundColor: '#ffffff',
-              borderTopWidth: 0,
-              paddingBottom: 10,
-              height: 80,
+              bottom: barBottom,
+              width: barWidth,
+              height: barHeight,
+              left: (screenWidth - barWidth) / 2, // precise centering
+              backgroundColor: '#ECE0D6',
+              borderRadius: 25,
+              flexDirection: 'row',
+              justifyContent: 'space-around',
+              paddingHorizontal: 16,
+              paddingTop: 10,
+              paddingBottom: 14,
               shadowColor: '#000',
-              shadowOffset: {
-                width: 0,
-                height: -2,
-              },
-              shadowOpacity: 0.1,
-              shadowRadius: 3,
-              elevation: 8,
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.12,
+              shadowRadius: 14,
+              elevation: 12,
+              borderWidth: 0,
+              borderTopWidth: 0,
+              overflow: 'hidden',
             },
-          }),
         }}
         screenListeners={{
           state: handleStateChange,
@@ -133,15 +155,21 @@ const TabLayout = React.memo(() => {
       {/* Plus button - only show on home tab, positioned on the right */}
       {currentRoute === 'index' && (
         <View
+          pointerEvents="box-none"
           style={{
             position: 'absolute',
-            bottom: Platform.OS === 'ios' ? 110 : 100,
-            right: 20,
-            zIndex: 9999,
-            elevation: 9999,
+            bottom: barBottom + barHeight + plusVerticalGap,
+            width: barWidth,
+            left: (screenWidth - barWidth) / 2,
+            zIndex: 10000,
+            elevation: 10000,
           }}
         >
-          <PlusButton />
+          <View style={{ position: 'relative', height: plusSize }}>
+            <View style={[{ position: 'absolute', top: 0 }, isRtlLang ? { left: plusSideOffset } : { right: plusSideOffset }]}>
+              <PlusButton />
+            </View>
+          </View>
         </View>
       )}
     </View>

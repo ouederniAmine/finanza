@@ -1,5 +1,6 @@
 // hooks/useClerkPrismaSync.ts
 import { UserService } from '@/lib/services/user.service';
+import { testSupabaseConnection, validateSupabaseConfig } from '@/lib/supabase-test';
 import { useUser } from '@clerk/clerk-expo';
 import { useEffect, useState } from 'react';
 
@@ -22,44 +23,45 @@ export function useClerkPrismaSync() {
     setError(null);
 
     try {
-      // Check if user exists in Supabase database
-      let existingUser = await UserService.getUserById(clerkUser.id);
-      
-      if (!existingUser) {
-        console.log('🔄 Creating new user in Supabase...');
-        // Sync Clerk user with Supabase database
-        const user = await UserService.syncClerkUser(clerkUser);
-        setPrismaUser(user);
-        console.log('✅ User created successfully');
-      } else {
-        console.log('✅ User already exists in Supabase');
-        setPrismaUser(existingUser);
-        
-        // Create default categories if this user has none
-        if (!existingUser.categories || existingUser.categories.length === 0) {
-          console.log('🔄 Creating default categories...');
-          await UserService.createDefaultCategories(clerkUser.id);
-          // Refresh user data to include new categories
-          existingUser = await UserService.getUserById(clerkUser.id);
-          setPrismaUser(existingUser);
-          console.log('✅ Default categories created');
-        }
+      // First validate configuration
+      const configValidation = validateSupabaseConfig();
+      if (!configValidation.valid) {
+        throw new Error(`Configuration error: ${configValidation.errors.join(', ')}`);
       }
+
+      // Test connection before proceeding
+      const connectionTest = await testSupabaseConnection();
+      if (!connectionTest.success) {
+        throw new Error(connectionTest.error);
+      }
+      // Sync Clerk user with Supabase database
+      console.log('🔄 Syncing user with Supabase...');
+      const user = await UserService.syncClerkUser(clerkUser);
+      setPrismaUser(user);
+      console.log('✅ User synced successfully');
     } catch (err) {
       console.error('💥 Error syncing user:', err);
       
-      // Check if it's an RLS error
-      if (err && typeof err === 'object' && 'code' in err) {
-        const errorObj = err as any;
-        if (errorObj.code === '42501') {
-          setError('Database permission issue. Please run the RLS fix script.');
-        } else if (errorObj.code === 'PGRST205') {
-          setError('Database tables not found. Please run the migration script.');
+      // Check for network connectivity issues first
+      if (err instanceof Error) {
+        if (err.message.includes('Failed to fetch') || err.message.includes('ERR_NAME_NOT_RESOLVED')) {
+          setError('Network connection failed. Please check your internet connection and Supabase configuration.');
+        } else if (err.message.includes('EXPO_PUBLIC_SUPABASE_URL') || err.message.includes('EXPO_PUBLIC_SUPABASE_ANON_KEY')) {
+          setError('Supabase configuration error. Please check your environment variables.');
+        } else if (err && typeof err === 'object' && 'code' in err) {
+          const errorObj = err as any;
+          if (errorObj.code === '42501') {
+            setError('Database permission issue. Please run the RLS fix script.');
+          } else if (errorObj.code === 'PGRST205') {
+            setError('Database tables not found. Please run the migration script.');
+          } else {
+            setError(`Database error: ${errorObj.message || 'Unknown error'}`);
+          }
         } else {
-          setError(`Database error: ${errorObj.message || 'Unknown error'}`);
+          setError(err.message || 'Failed to sync user');
         }
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to sync user');
+        setError('Failed to sync user - unknown error');
       }
     } finally {
       setIsLoading(false);

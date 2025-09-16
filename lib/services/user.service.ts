@@ -1,6 +1,7 @@
 // lib/services/user.service.ts
 import type { User } from '../supabase';
 import { supabase } from '../supabase';
+import { createSupabaseUser, getSupabaseUserByClerkId } from '../clerk-supabase-sync';
 
 export class UserService {
   /**
@@ -9,33 +10,34 @@ export class UserService {
    */
   static async syncClerkUser(clerkUser: any): Promise<User> {
     try {
-      const userData = {
-        id: clerkUser.id,
-        email: clerkUser.emailAddresses[0]?.emailAddress || '',
-        full_name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
-        avatar_url: clerkUser.imageUrl,
-        phone_number: clerkUser.phoneNumbers[0]?.phoneNumber,
-        preferred_language: 'en' as const,
-        preferred_currency: 'TND' as const,
-        cultural_preferences: {},
-        updated_at: new Date().toISOString(),
-      };
-
-      // Upsert user - create if doesn't exist, update if exists
-      const { data: user, error } = await supabase
-        .from('users')
-        .upsert(userData, { onConflict: 'id' })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error syncing Clerk user:', error);
-        throw error;
+      console.log('🔄 Syncing Clerk user with Supabase...');
+      
+      // First check if user already exists
+      const existingUser = await getSupabaseUserByClerkId(clerkUser.id);
+      
+      if (existingUser) {
+        console.log('✅ User already exists in Supabase:', existingUser.id);
+        return existingUser;
       }
-
-      return user;
+      
+      // Create new user using the proper sync function
+      console.log('🔄 Creating new user in Supabase...');
+      const newUser = await createSupabaseUser(clerkUser);
+      console.log('✅ User created successfully:', newUser.id);
+      
+      return newUser;
     } catch (error) {
-      console.error('Error syncing Clerk user:', error);
+      console.error('💥 Error syncing user:', error);
+      
+      // Handle network errors more specifically
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('ERR_NAME_NOT_RESOLVED')) {
+          throw new Error('Network connection failed. Please check your internet connection and Supabase configuration.');
+        } else if (error.message.includes('22P02') || error.message.includes('invalid input syntax for type uuid')) {
+          throw new Error('Database sync failed. Invalid user ID format. Please try signing in again.');
+        }
+      }
+      
       throw error;
     }
   }
@@ -67,10 +69,8 @@ export class UserService {
       // Get transactions with category data
       const { data: transactions } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          category:categories(*)
-        `)
+        // Removed category join until FK exists
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -88,15 +88,23 @@ export class UserService {
   /**
    * Update user profile
    */
-  static async updateProfile(userId: string, data: any): Promise<any> {
+  static async updateProfile(clerkUserId: string, data: any): Promise<any> {
     try {
+      // First get the Supabase user by Clerk ID
+      const { getSupabaseUserByClerkId } = await import('../clerk-supabase-sync');
+      const supabaseUser = await getSupabaseUserByClerkId(clerkUserId);
+      
+      if (!supabaseUser) {
+        throw new Error('User not found in Supabase. Please sign in again.');
+      }
+
       const { data: updatedUser, error } = await supabase
         .from('users')
         .update({
           ...data,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', userId)
+        .eq('id', supabaseUser.id)
         .select()
         .single();
 
@@ -116,7 +124,7 @@ export class UserService {
    * Complete onboarding
    */
   static async completeOnboarding(
-    userId: string,
+    clerkUserId: string,
     onboardingData: {
       date_of_birth?: string;
       preferred_language?: 'tn' | 'ar' | 'fr' | 'en';
@@ -125,13 +133,22 @@ export class UserService {
     }
   ): Promise<User> {
     try {
+      // First get the Supabase user by Clerk ID
+      const { getSupabaseUserByClerkId } = await import('../clerk-supabase-sync');
+      const supabaseUser = await getSupabaseUserByClerkId(clerkUserId);
+      
+      if (!supabaseUser) {
+        throw new Error('User not found in Supabase. Please sign in again.');
+      }
+
       const { data: updatedUser, error } = await supabase
         .from('users')
         .update({
           ...onboardingData,
+          onboarding_completed: true,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', userId)
+        .eq('id', supabaseUser.id)
         .select()
         .single();
 

@@ -25,39 +25,25 @@ export const PlusButton = ({ onPress }: PlusButtonProps) => {
     <>
       <TouchableOpacity
         onPress={handlePress}
-        style={{
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-        activeOpacity={0.7}
+        style={{ justifyContent: 'center', alignItems: 'center' }}
+        activeOpacity={0.8}
       >
         <View
           style={{
-            width: 70,
-            height: 70,
-            borderRadius: 35,
-            backgroundColor: '#fff',
+            width: 56,
+            height: 56,
+            borderRadius: 20,
+            backgroundColor: '#754E51',
             justifyContent: 'center',
             alignItems: 'center',
             shadowColor: '#000',
-            shadowOffset: {
-              width: 0,
-              height: 8,
-            },
-            shadowOpacity: 0.15,
-            shadowRadius: 16,
-            elevation: 8,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.18,
+            shadowRadius: 8,
+            elevation: 6,
           }}
         >
-          <Text
-            style={{
-              fontSize: 28,
-              fontWeight: 'bold',
-              color: '#7F56D9',
-            }}
-          >
-            +
-          </Text>
+          <Text style={{ fontSize: 30, fontWeight: '700', color: '#FFFFFF', marginTop: -2 }}>+</Text>
         </View>
       </TouchableOpacity>
 

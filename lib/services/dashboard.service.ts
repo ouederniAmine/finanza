@@ -27,9 +27,20 @@ export class DashboardService {
   /**
    * Get complete dashboard data for a user
    */
-  static async getDashboardData(userId: string, language: string = 'en'): Promise<DashboardData> {
+  static async getDashboardData(clerkUserId: string, language: string = 'en'): Promise<DashboardData> {
     try {
-      console.log('🔄 Fetching dashboard data for user:', userId);
+      console.log('🔄 Fetching dashboard data for Clerk user:', clerkUserId);
+
+      // First get the Supabase user by Clerk ID
+      const { getSupabaseUserByClerkId } = await import('../clerk-supabase-sync');
+      const supabaseUser = await getSupabaseUserByClerkId(clerkUserId);
+      
+      if (!supabaseUser) {
+        throw new Error('User not found in Supabase. Please sign in again.');
+      }
+
+      const userId = supabaseUser.id;
+      console.log('🔄 Using Supabase user ID:', userId);
 
       // Fetch user basic info
       const { data: user, error: userError } = await supabase
@@ -76,10 +87,8 @@ export class DashboardService {
       // Fetch transactions with categories
       const { data: transactions, error: transactionsError } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          category:categories(*)
-        `)
+        // Removed category join due to missing FK (PGRST200); re-add after FK creation
+        .select('*')
         .eq('user_id', userId)
         .gte('transaction_date', startDate)
         .order('transaction_date', { ascending: false });

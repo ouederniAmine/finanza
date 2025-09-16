@@ -3,6 +3,7 @@ import { DebtService } from '@/lib/services/debt.service';
 import { useUIStore } from '@/lib/store';
 import type { Category, SavingsGoal } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
+import { getSupabaseUserByClerkId } from '@/lib/clerk-supabase-sync';
 import { useUser } from '@clerk/clerk-expo';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -78,6 +79,12 @@ const AddTransactionDrawerPerfect: React.FC<AddTransactionDrawerPerfectProps> = 
     try {
       console.log('🔧 Loading categories directly from Supabase...');
       
+      // First get the Supabase user by Clerk ID
+      const supabaseUser = await getSupabaseUserByClerkId(user.id);
+      if (!supabaseUser) {
+        throw new Error('User not found in Supabase. Please sign in again.');
+      }
+      
       // Map UI transaction types to category types
       let categoryType;
       switch (selectedType) {
@@ -98,11 +105,11 @@ const AddTransactionDrawerPerfect: React.FC<AddTransactionDrawerPerfectProps> = 
           categoryType = 'expense';
       }
       
-      // Direct Supabase query instead of using CategoryService
+      // Direct Supabase query using proper UUID
       let query = supabase
         .from('categories')
         .select('*')
-        .or(`user_id.eq.${user.id},user_id.is.null,is_default.eq.true`)
+        .or(`user_id.eq.${supabaseUser.id},user_id.is.null,is_default.eq.true`)
         .order('is_default', { ascending: false })
         .order('name_tn', { ascending: true });
 

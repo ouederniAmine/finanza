@@ -37,10 +37,8 @@ export class AnalyticsService {
 
       const { data: transactions, error: transactionsError } = await supabase
         .from('transactions')
-        .select(`
-          *,
-          category:categories(*)
-        `)
+        // Removed category join due to missing FK (PGRST200)
+        .select('*')
         .eq('user_id', userId)
         .gte('transaction_date', sixMonthsAgo.toISOString())
         .order('transaction_date', { ascending: true });

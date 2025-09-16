@@ -55,10 +55,9 @@ export class DebtService {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .select(`
-          *,
-          category:categories(*)
-        `)
+        // NOTE: Removed category join due to PostgREST error PGRST200 (no FK between debts and categories)
+        // If/when a foreign key is added (debts.category_id -> categories.id), reinstate joined select.
+        .select('*')
         .single();
 
       if (error) {
@@ -83,10 +82,8 @@ export class DebtService {
 
       const { data, error } = await supabase
         .from('debts')
-        .select(`
-          *,
-          category:categories(*)
-        `)
+        // Removed category join (see note above)
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -117,10 +114,8 @@ export class DebtService {
           updated_at: new Date().toISOString(),
         })
         .eq('id', debtId)
-        .select(`
-          *,
-          category:categories(*)
-        `)
+        // Removed category join (see note above)
+        .select('*')
         .single();
 
       if (error) {
@@ -153,10 +148,8 @@ export class DebtService {
           updated_at: new Date().toISOString(),
         })
         .eq('id', debtId)
-        .select(`
-          *,
-          category:categories(*)
-        `)
+        // Removed category join (see note above)
+        .select('*')
         .single();
 
       if (error) {
@@ -209,10 +202,8 @@ export class DebtService {
         .from('debts')
         .update(updates)
         .eq('id', debtId)
-        .select(`
-          *,
-          category:categories(*)
-        `)
+        // Removed category join (see note above)
+        .select('*')
         .single();
 
       if (error) {
@@ -307,10 +298,8 @@ export class DebtService {
 
       const { data, error } = await supabase
         .from('debts')
-        .select(`
-          *,
-          category:categories(*)
-        `)
+        // Removed category join (see note above)
+        .select('*')
         .eq('user_id', userId)
         .eq('is_settled', false)
         .lt('due_date', new Date().toISOString().split('T')[0])

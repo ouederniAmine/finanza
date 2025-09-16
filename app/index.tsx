@@ -21,49 +21,26 @@ export default function IndexScreen() {
           console.log('👤 INDEX: User is signed in, checking onboarding status...');
           
           try {
-            // First, ensure user exists in Supabase database
-            const { data: existingUser, error: fetchError } = await supabase
-              .from('users')
-              .select('onboarding_completed')
-              .eq('id', user.id)
-              .single();
-
-            if (fetchError && fetchError.code === 'PGRST116') {
-              // User doesn't exist, create them
-              console.log('📝 INDEX: User not found in database, creating user record...');
-              
-              const { error: createError } = await supabase
-                .from('users')
-                .insert({
-                  id: user.id,
-                  email: user.emailAddresses[0]?.emailAddress || '',
-                  full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-                  avatar_url: user.imageUrl,
-                  onboarding_completed: false,
-                  total_balance: 0.00,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                });
-
-              if (createError) {
-                console.error('❌ INDEX: Error creating user:', createError);
-                // Default to onboarding on error
-                router.replace('/onboarding/welcome');
-                return;
-              }
-
-              console.log('✅ INDEX: User created successfully, redirecting to onboarding');
-              router.replace('/onboarding/welcome');
-            } else if (fetchError) {
-              console.error('❌ INDEX: Error fetching user data:', fetchError);
-              router.replace('/onboarding/welcome');
-            } else if (existingUser.onboarding_completed) {
+            // Use the proper sync method that handles Clerk ID to UUID mapping
+            const { getSupabaseUserByClerkId } = await import('../lib/clerk-supabase-sync');
+            let supabaseUser = await getSupabaseUserByClerkId(user.id);
+            
+            if (!supabaseUser) {
+              // User doesn't exist, sync them using UserService
+              console.log('📝 INDEX: User not found in database, syncing user...');
+              const { UserService } = await import('../lib/services/user.service');
+              supabaseUser = await UserService.syncClerkUser(user);
+              console.log('✅ INDEX: User synced successfully');
+            }
+            
+            // Check onboarding status
+            if (supabaseUser.onboarding_completed) {
               console.log('🏠 INDEX: User has completed onboarding, going to home');
-              console.log('🔍 INDEX: onboarding_completed value:', existingUser.onboarding_completed);
+              console.log('🔍 INDEX: onboarding_completed value:', supabaseUser.onboarding_completed);
               router.replace('/(tabs)');
             } else {
               console.log('📝 INDEX: User has not completed onboarding, redirecting to onboarding');
-              console.log('🔍 INDEX: onboarding_completed value:', existingUser.onboarding_completed);
+              console.log('🔍 INDEX: onboarding_completed value:', supabaseUser.onboarding_completed);
               router.replace('/onboarding/welcome');
             }
           } catch (error) {

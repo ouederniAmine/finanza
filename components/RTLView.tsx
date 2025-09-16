@@ -15,8 +15,8 @@ export function RTLView({ children, style, ...props }: RTLViewProps) {
   return (
     <View 
       style={[
-        { direction: direction as any },
-        style
+        { writingDirection: direction as any } as any,
+        style as any
       ]} 
       {...props}
     >
@@ -39,8 +39,8 @@ export function RTLText({ children, style, ...props }: RTLTextProps) {
   return (
     <Text 
       style={[
-        { textAlign },
-        style
+        { textAlign, writingDirection: textAlign === 'right' ? 'rtl' : 'ltr' } as any,
+        style as any
       ]} 
       {...props}
     >

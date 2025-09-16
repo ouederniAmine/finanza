@@ -6,7 +6,7 @@ import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getTextAlign, t } from '../../lib/i18n';
 import { useUIStore } from '../../lib/store';
-import { supabase } from '../../lib/supabase';
+import { UserService } from '../../lib/services/user.service';
 
 export default function CompleteScreen() {
   const { user } = useUser();
@@ -19,42 +19,18 @@ export default function CompleteScreen() {
       console.log('Completing onboarding for user:', user?.id);
       
       if (user) {
-        // Mark onboarding as completed in the database using the onboarding_completed column
-        const { error } = await supabase
-          .from('users')
-          .update({
-            onboarding_completed: true,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', user.id);
+        // Use UserService to properly complete onboarding with Clerk ID to UUID mapping
+        const updatedUser = await UserService.completeOnboarding(user.id, {});
 
-        if (error) {
-          console.error('Error marking onboarding as completed:', error);
-          // Show error and don't proceed
+        if (updatedUser) {
+          console.log('Onboarding completed successfully:', updatedUser.id);
+          console.log('Onboarding completed successfully for Clerk user:', user.id);
+        } else {
+          console.error('Failed to complete onboarding');
           alert('Failed to complete onboarding. Please try again.');
           setLoading(false);
           return;
-        } else {
-          console.log('Onboarding marked as completed successfully');
-          
-          // Verify the update worked
-          const { data: verifyData, error: verifyError } = await supabase
-            .from('users')
-            .select('onboarding_completed')
-            .eq('id', user.id)
-            .single();
-            
-          if (verifyError || !verifyData?.onboarding_completed) {
-            console.error('Verification failed:', verifyError);
-            alert('Failed to complete onboarding. Please try again.');
-            setLoading(false);
-            return;
-          }
-          
-          console.log('✅ Onboarding completion verified:', verifyData.onboarding_completed);
         }
-        
-        console.log('Onboarding completed successfully for Clerk user:', user.id);
       }
 
       // Add a small delay to ensure database update is propagated

@@ -39,10 +39,8 @@ export class BudgetService {
       // Get budgets with category details
       const { data: budgets, error: budgetsError } = await supabase
         .from('budgets')
-        .select(`
-          *,
-          category:categories(*)
-        `)
+        // Removed category join until FK exists
+        .select('*')
         .eq('user_id', userId)
         .eq('period', period)
         .eq('is_active', true)
@@ -160,10 +158,8 @@ export class BudgetService {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .select(`
-          *,
-          category:categories(*)
-        `)
+        // Removed category join until FK exists
+        .select('*')
         .single();
 
       if (error) {
@@ -206,10 +202,8 @@ export class BudgetService {
         .update(updateData)
         .eq('id', budgetId)
         .eq('user_id', userId)
-        .select(`
-          *,
-          category:categories(*)
-        `)
+        // Removed category join until FK exists
+        .select('*')
         .single();
 
       if (error) {

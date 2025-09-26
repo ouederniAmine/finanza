@@ -5,7 +5,7 @@ import { useUIStore } from '@/lib/store';
 import { useUser } from '@clerk/clerk-expo';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Animated, Dimensions, I18nManager, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Dimensions, I18nManager, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, G, Path } from 'react-native-svg';
 

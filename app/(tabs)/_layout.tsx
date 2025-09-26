@@ -1,15 +1,14 @@
 import { HapticTab } from '@/components/HapticTab';
 import { PlusButton } from '@/components/PlusButton';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
+import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { t } from '@/lib/i18n';
 import { useUIStore } from '@/lib/store';
 import { Tabs } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Platform, View, I18nManager, Dimensions } from 'react-native';
+import { Dimensions, I18nManager, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '@/constants/Colors';
 
 const TabLayout = React.memo(() => {
   const colorScheme = useColorScheme();
@@ -30,7 +29,8 @@ const TabLayout = React.memo(() => {
     }
   }, [currentRoute]);
 
-  const theme = Colors.light; // TODO: switch on colorScheme
+  // Use theme based on current color scheme
+  const theme = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const forceLTR = true; // we are enforcing LTR per request
   const directionStyle = { writingDirection: forceLTR ? 'ltr' : (I18nManager.isRTL ? 'rtl' : 'ltr') } as const;
   if (__DEV__) {
@@ -42,7 +42,8 @@ const TabLayout = React.memo(() => {
   const horizontalMargin = 24; // space to edges on small screens
   const maxBarWidth = 346;
   const barWidth = Math.min(maxBarWidth, screenWidth - horizontalMargin);
-  const barHeight = 70;
+  // Slightly taller bar so labels don't get clipped
+  const barHeight = 82;
   const barBottom = Math.max(28, insets.bottom + 12); // raise bar considering safe area
   const plusSize = 56; // from PlusButton
   const plusVerticalGap = 18; // larger gap so plus clearly au dessus
@@ -55,32 +56,42 @@ const TabLayout = React.memo(() => {
   {/** Plus button side will be determined inside its own render block below. */}
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: '#754E51',
-            tabBarInactiveTintColor: '#454B55',
+          tabBarActiveTintColor: theme.primary,
+            tabBarInactiveTintColor: colorScheme === 'dark' ? '#C4B5FD' : theme.muted,
             headerShown: false,
             tabBarButton: HapticTab,
             tabBarShowLabel: true,
+            tabBarLabelStyle: {
+              fontSize: 12,
+              fontWeight: '600',
+              marginTop: 2,
+            },
+            tabBarItemStyle: {
+              paddingTop: 6,
+              paddingBottom: 4,
+            },
             tabBarStyle: {
               position: 'absolute',
               bottom: barBottom,
               width: barWidth,
               height: barHeight,
               left: (screenWidth - barWidth) / 2, // precise centering
-              backgroundColor: '#ECE0D6',
+              backgroundColor: theme.surfaceAlt,
               borderRadius: 25,
               flexDirection: 'row',
               justifyContent: 'space-around',
-              paddingHorizontal: 16,
-              paddingTop: 10,
-              paddingBottom: 14,
-              shadowColor: '#000',
+              paddingHorizontal: 12,
+              paddingTop: 8,
+              paddingBottom: 8,
+              shadowColor: theme.primary,
               shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.12,
+              shadowOpacity: 0.16,
               shadowRadius: 14,
               elevation: 12,
-              borderWidth: 0,
+              borderWidth: 1,
+              borderColor: 'rgba(124,58,237,0.15)',
               borderTopWidth: 0,
-              overflow: 'hidden',
+              overflow: 'visible',
             },
         }}
         screenListeners={{

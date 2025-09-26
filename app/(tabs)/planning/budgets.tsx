@@ -5,10 +5,10 @@ import { supabase } from '@/lib/supabase';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Modal, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import PlanningSegmentedBar from '../../../components/PlanningSegmentedBar';
 import PlanningSwipeWrapper from '../../../components/PlanningSwipeWrapper';
 import { PlusButton } from '../../../components/PlusButton';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -674,7 +674,7 @@ export default function BudgetsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EAD9C9',
+    backgroundColor: '#EDE9FE',
   },
   pageContent: {
     flex: 1,

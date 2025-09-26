@@ -20,6 +20,10 @@ const MAPPING = {
   'chevron.right': 'chevron-right',
   'list.bullet': 'list',
   'chart.pie.fill': 'donut-large',
+  // Tabs & analytics
+  'chart.line.uptrend.xyaxis': 'show-chart',
+  'chart.bar.fill': 'bar-chart',
+  'gearshape.fill': 'settings',
   'calendar': 'event',
   'calendar.badge.plus': 'event-note',
   'calendar.day.timeline.leading': 'schedule',

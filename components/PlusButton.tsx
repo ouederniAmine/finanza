@@ -1,3 +1,5 @@
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import React, { useCallback, useState } from 'react';
 import {
     Text,
@@ -12,6 +14,8 @@ interface PlusButtonProps {
 
 export const PlusButton = ({ onPress }: PlusButtonProps) => {
   const [showTransactionDrawer, setShowTransactionDrawer] = useState(false);
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? Colors.dark : Colors.light;
 
   const handlePress = useCallback(() => {
     if (onPress) {
@@ -25,6 +29,8 @@ export const PlusButton = ({ onPress }: PlusButtonProps) => {
     <>
       <TouchableOpacity
         onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel="Add transaction"
         style={{ justifyContent: 'center', alignItems: 'center' }}
         activeOpacity={0.8}
       >
@@ -33,17 +39,19 @@ export const PlusButton = ({ onPress }: PlusButtonProps) => {
             width: 56,
             height: 56,
             borderRadius: 20,
-            backgroundColor: '#754E51',
+            backgroundColor: theme.primary,
             justifyContent: 'center',
             alignItems: 'center',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.18,
-            shadowRadius: 8,
-            elevation: 6,
+            shadowColor: theme.primary,
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.25,
+            shadowRadius: 18,
+            elevation: 12,
+            borderWidth: 1,
+            borderColor: 'rgba(248,245,255,0.3)',
           }}
         >
-          <Text style={{ fontSize: 30, fontWeight: '700', color: '#FFFFFF', marginTop: -2 }}>+</Text>
+          <Text style={{ fontSize: 30, fontWeight: '800', color: theme.primaryContrast, marginTop: -2 }}>+</Text>
         </View>
       </TouchableOpacity>
 

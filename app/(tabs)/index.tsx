@@ -1,3 +1,4 @@
+import { Colors } from '@/constants/Colors';
 import { formatCurrency, getCurrency, getTextAlign, t } from '@/lib/i18n';
 import { DashboardService } from '@/lib/services';
 import type { DashboardData } from '@/lib/services/dashboard.service';
@@ -5,8 +6,7 @@ import { useUIStore } from '@/lib/store';
 import { useUser } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View, I18nManager } from 'react-native';
-import { Colors } from '@/constants/Colors';
+import { Alert, Dimensions, I18nManager, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Polyline, Stop, LinearGradient as SvgLinearGradient } from 'react-native-svg';
 
@@ -602,13 +602,13 @@ export default function DashboardScreen() {
   };
 
   const getChartCardColor = (index: number) => {
-    const colors = ['#F0F4FF', '#FFF5F5', '#F0FDF4', '#FFFBEB'];
-    return colors[index] || '#FFFFFF';
+    const colors = ['#F3F0FF', '#EDE9FE', '#DDD6FE', '#C4B5FD'];
+    return colors[index] || '#F8F5FF';
   };
 
   const getChartIconColor = (index: number) => {
-    const colors = ['#667EEA', '#FF6B6B', '#10B981', '#F59E0B'];
-    return colors[index] || '#667EEA';
+    const colors = ['#7C3AED', '#A855F7', '#8B5CF6', '#6D28D9'];
+    return colors[index] || '#7C3AED';
   };
 
   const getChartIcon = (index: number) => {
@@ -641,7 +641,7 @@ export default function DashboardScreen() {
   const amountFontSize = 14 * Math.min(1.05, scale * 1.02);
 
   return (
-  <SafeAreaView style={[styles.container, { backgroundColor: '#EAD9C9' }] }>
+  <SafeAreaView style={[styles.container, { backgroundColor: '#EDE9FE' }] }>
       <ScrollView 
         style={styles.scrollView}
         refreshControl={
@@ -680,49 +680,49 @@ export default function DashboardScreen() {
 
         {/* Overlay Parent Card for Assets & Liabilities */}
         <View style={styles.assetsOverlayWrapper}>
-          <View style={[styles.assetsOverlayCard, { backgroundColor: '#ECE0D6', width: overlayWidth, height: overlayHeight }]}>
-            <View style={[styles.dualStatsRow, { gap: 12 }]}>
+          <View style={[styles.assetsOverlayCard, { backgroundColor: theme.surfaceAlt, width: overlayWidth, height: overlayHeight }]}>
+            <View style={[styles.dualStatsRow, { gap: 12, flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
               {/* Assets mini card */}
-              <View style={[styles.miniStatCard, { backgroundColor: '#FFFFFF', borderWidth: 0, width: miniCardWidth, height: miniCardHeight }] }>
-                <View style={[styles.miniHeaderRow, { marginBottom: 4 }]}>
-                  <View style={[styles.miniIconCircle, { backgroundColor: '#F2FFE9', width: iconSize, height: iconSize, borderRadius: iconSize / 2 }]}>
+              <View style={[styles.miniStatCard, { backgroundColor: theme.primaryContrast, borderWidth: 1, borderColor: 'rgba(124,58,237,0.12)', width: miniCardWidth, height: miniCardHeight }] }>
+                <View style={[styles.miniHeaderRow, { marginBottom: 4 }, isRTL ? styles.rtlRow : styles.ltrRow]}>
+                  <View style={[styles.miniIconCircle, { backgroundColor: theme.subtle, width: iconSize, height: iconSize, borderRadius: iconSize / 2 }, isRTL ? { marginLeft: 8, marginRight: 0 } : { marginRight: 8 }]}>
                     <Text style={[styles.miniIconEmoji, { fontSize: iconSize * 0.53 }]}>💰</Text>
                   </View>
                   <View style={{ flexDirection: 'column' }}>
-                    <Text style={[styles.miniTitle, { fontSize: titleFontSize } ]}>Assets</Text>
-                    <Text style={[styles.miniAmount, { fontSize: amountFontSize } ]}>{formatCurrency((user.income||0)+(user.totalBalance||0), currency, language)}</Text>
+                    <Text style={[styles.miniTitle, { fontSize: titleFontSize, color: theme.primary, textAlign: isRTL ? 'right' : 'left' } ]}>{t('dashboard.assets', language)}</Text>
+                    <Text style={[styles.miniAmount, { fontSize: amountFontSize, color: theme.primary, textAlign: isRTL ? 'right' : 'left' } ]}>{formatCurrency((user.income||0)+(user.totalBalance||0), currency, language)}</Text>
                   </View>
                 </View>
                 <View style={styles.miniDetailsBlock}>
-                  <View style={styles.miniDetailRow}>
-                    <Text style={styles.miniDetailLabel}>Income:</Text>
-                    <Text style={styles.miniDetailValue}>{formatCurrency(user.income||0, currency, language)}</Text>
+                  <View style={[styles.miniDetailRow, isRTL ? styles.rtlRow : styles.ltrRow]}>
+                    <Text style={[styles.miniDetailLabel, { color: theme.muted, textAlign: isRTL ? 'left' : 'right' }]}>{t('dashboard.income', language)}:</Text>
+                    <Text style={[styles.miniDetailValue, { color: theme.primary }]}>{formatCurrency(user.income||0, currency, language)}</Text>
                   </View>
-                  <View style={styles.miniDetailRow}>
-                    <Text style={styles.miniDetailLabel}>Saving:</Text>
-                    <Text style={styles.miniDetailValue}>{formatCurrency(user.totalBalance||0, currency, language)}</Text>
+                  <View style={[styles.miniDetailRow, isRTL ? styles.rtlRow : styles.ltrRow]}>
+                    <Text style={[styles.miniDetailLabel, { color: theme.muted, textAlign: isRTL ? 'left' : 'right' }]}>{t('dashboard.saving', language)}:</Text>
+                    <Text style={[styles.miniDetailValue, { color: theme.primary }]}>{formatCurrency(user.totalBalance||0, currency, language)}</Text>
                   </View>
                 </View>
               </View>
               {/* Liabilities mini card */}
-              <View style={[styles.miniStatCard, { backgroundColor: '#FFFFFF', borderWidth: 0, width: miniCardWidth, height: miniCardHeight }] }>
-                <View style={[styles.miniHeaderRow, { marginBottom: 4 }]}>
-                  <View style={[styles.miniIconCircle, { backgroundColor: '#FFEFF0', width: iconSize, height: iconSize, borderRadius: iconSize / 2 }]}>
+              <View style={[styles.miniStatCard, { backgroundColor: theme.primaryContrast, borderWidth: 1, borderColor: 'rgba(124,58,237,0.12)', width: miniCardWidth, height: miniCardHeight }] }>
+                <View style={[styles.miniHeaderRow, { marginBottom: 4 }, isRTL ? styles.rtlRow : styles.ltrRow]}>
+                  <View style={[styles.miniIconCircle, { backgroundColor: theme.subtle, width: iconSize, height: iconSize, borderRadius: iconSize / 2 }, isRTL ? { marginLeft: 8, marginRight: 0 } : { marginRight: 8 }]}>
                     <Text style={[styles.miniIconEmoji, { fontSize: iconSize * 0.53 }]}>💳</Text>
                   </View>
                   <View style={{ flexDirection: 'column' }}>
-                    <Text style={[styles.miniTitle, { fontSize: titleFontSize }]}>Liabilities</Text>
-                    <Text style={[styles.miniAmount, { fontSize: amountFontSize }]}>{formatCurrency(user.expenses||0, currency, language)}</Text>
+                    <Text style={[styles.miniTitle, { fontSize: titleFontSize, color: theme.primary, textAlign: isRTL ? 'right' : 'left' }]}>{t('dashboard.liabilities', language)}</Text>
+                    <Text style={[styles.miniAmount, { fontSize: amountFontSize, color: theme.primary, textAlign: isRTL ? 'right' : 'left' }]}>{formatCurrency(user.expenses||0, currency, language)}</Text>
                   </View>
                 </View>
                 <View style={styles.miniDetailsBlock}>
-                  <View style={styles.miniDetailRow}>
-                    <Text style={styles.miniDetailLabel}>expenses:</Text>
-                    <Text style={styles.miniDetailValue}>{formatCurrency(user.expenses||0, currency, language)}</Text>
+                  <View style={[styles.miniDetailRow, isRTL ? styles.rtlRow : styles.ltrRow]}>
+                    <Text style={[styles.miniDetailLabel, { color: theme.muted, textAlign: isRTL ? 'left' : 'right' }]}>{t('dashboard.expenses', language)}:</Text>
+                    <Text style={[styles.miniDetailValue, { color: theme.primary }]}>{formatCurrency(user.expenses||0, currency, language)}</Text>
                   </View>
-                  <View style={styles.miniDetailRow}>
-                    <Text style={styles.miniDetailLabel}>debts:</Text>
-                    <Text style={styles.miniDetailValue}>{formatCurrency(0, currency, language)}</Text>
+                  <View style={[styles.miniDetailRow, isRTL ? styles.rtlRow : styles.ltrRow]}>
+                    <Text style={[styles.miniDetailLabel, { color: theme.muted, textAlign: isRTL ? 'left' : 'right' }]}>{t('dashboard.debts', language)}:</Text>
+                    <Text style={[styles.miniDetailValue, { color: theme.primary }]}>{formatCurrency(0, currency, language)}</Text>
                   </View>
                 </View>
               </View>
@@ -790,7 +790,7 @@ export default function DashboardScreen() {
               {currentChartIndex === 1 && renderMultiLineChart(
                 (chartData[1].data as any).income, 
                 (chartData[1].data as any).expenses, 
-                chartData[1].colors || { income: '#4ECDC4', expenses: '#FF6B6B' }
+                chartData[1].colors || { income: '#8B5CF6', expenses: '#A855F7' }
               )}
               {currentChartIndex === 2 && renderLineChart(chartData[2].data as any[], chartData[2].color || '#10B981')}
               {currentChartIndex === 3 && renderDonutChart(chartData[3].data as any[], chartData[3].totalAmount || 0)}
@@ -937,7 +937,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EAD9C9',
+    backgroundColor: '#EDE9FE', // Light purple background
   },
   // forceLTR style removed (invalid 'direction' key for RNW); if needed, manage layout via I18nManager
   scrollView: {
@@ -950,17 +950,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 16,
-    backgroundColor: '#F5EBE0',
+    backgroundColor: '#F3F0FF', // Light purple header
   },
   profileButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#5D4037',
+    backgroundColor: '#7C3AED', // Purple profile button
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
-    shadowColor: '#5D4037',
+    shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
@@ -968,7 +968,7 @@ const styles = StyleSheet.create({
   },
   profileIcon: {
     fontSize: 20,
-    color: '#FEFBF6',
+    color: '#F8F5FF',
   },
   headerContent: {
     flex: 1,
@@ -976,24 +976,24 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 16,
-    color: '#A1887F',
+    color: '#8B5CF6',
     marginBottom: 4,
     fontWeight: '500',
   },
   userName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#5D4037',
+    color: '#7C3AED',
   },
   notificationButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FEFBF6',
+    backgroundColor: '#F8F5FF',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    shadowColor: '#5D4037',
+    shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1001,7 +1001,7 @@ const styles = StyleSheet.create({
   },
   notificationIcon: {
     fontSize: 20,
-    color: '#5D4037',
+    color: '#7C3AED', // Purple primary
   },
   notificationBadge: {
     position: 'absolute',
@@ -1017,7 +1017,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  // New Balance Card with Kawaii Background
+  // New Balance Card with Purple Background
   balanceCard: {
     width: '100%',
     alignSelf: 'center',
@@ -1027,7 +1027,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 50,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
-    backgroundColor: '#5D4037',
+    backgroundColor: '#7C3AED', // Purple primary
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 16,
@@ -1076,13 +1076,13 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   assetsOverlayCard: {
-    backgroundColor: '#ECE0D6',
+    backgroundColor: '#EDE9FE', // Light purple (overridden at runtime with theme)
     borderRadius: 22,
     paddingVertical: 12,
     paddingHorizontal: 12,
-    shadowColor: '#000',
+    shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.12,
     shadowRadius: 10,
     elevation: 6,
   },
@@ -1119,14 +1119,14 @@ const styles = StyleSheet.create({
   miniTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#000',
+    color: '#7C3AED',
     marginRight: 4,
     fontFamily: 'SourceSansPro-Bold', // ensure this font is loaded; fallback if not
   },
   miniAmount: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#000',
+    color: '#7C3AED',
     marginTop: 2,
     marginLeft: 0,
     fontFamily: 'SourceSansPro-Bold',
@@ -1142,12 +1142,12 @@ const styles = StyleSheet.create({
   miniDetailLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#000',
+    color: '#8B5CF6',
   },
   miniDetailValue: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#000',
+    color: '#7C3AED',
   },
   
   // Cards Container (Side by Side)
@@ -1163,7 +1163,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#5D4037',
+    shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -1171,11 +1171,11 @@ const styles = StyleSheet.create({
   },
   
   assetsCard: {
-    backgroundColor: '#FEFBF6',
+    backgroundColor: '#F8F5FF',
   },
   
   liabilitiesCard: {
-    backgroundColor: '#FEFBF6',
+    backgroundColor: '#F8F5FF',
   },
   
   // Simple Assets List (like img3)
@@ -1192,13 +1192,13 @@ const styles = StyleSheet.create({
   
   simpleAssetLabel: {
     fontSize: 14,
-    color: '#5D4037',
+    color: '#7C3AED',
     fontWeight: '500',
   },
   
   simpleAssetValue: {
     fontSize: 14,
-    color: '#A1887F',
+    color: '#8B5CF6',
     fontWeight: '400',
   },
   
@@ -1337,7 +1337,7 @@ const styles = StyleSheet.create({
     width: 144,
     height: 45,
     borderRadius: 20,
-    backgroundColor: '#EED4C4',
+    backgroundColor: '#DDD6FE', // Light purple
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -1350,7 +1350,7 @@ const styles = StyleSheet.create({
     width: 62,
     height: 45,
     borderRadius: 20,
-    backgroundColor: '#C2E0C4',
+    backgroundColor: '#C4B5FD', // Medium purple
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -1363,7 +1363,7 @@ const styles = StyleSheet.create({
     width: 81,
     height: 45,
     borderRadius: 20,
-    backgroundColor: '#F4C3AA',
+    backgroundColor: '#A78BFA', // Purple accent
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -1397,11 +1397,11 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#F0A07B',
+    backgroundColor: '#A855F7', // Purple accent
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
-    shadowColor: '#5D4037',
+    shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1415,7 +1415,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
-    shadowColor: '#5D4037',
+    shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1423,11 +1423,11 @@ const styles = StyleSheet.create({
   },
   assetIcon: {
     fontSize: 28,
-    color: '#FEFBF6',
+    color: '#F8F5FF', // Light purple text
   },
   liabilityIcon: {
     fontSize: 28,
-    color: '#FEFBF6',
+    color: '#F8F5FF', // Light purple text
   },
   cardTitleContainer: {
     flex: 1,
@@ -1435,18 +1435,18 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#5D4037',
+    color: '#7C3AED', // Purple primary
     marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: '#A1887F',
+    color: '#8B5CF6', // Purple muted
     fontWeight: '500',
   },
   cardMainAmount: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#5D4037',
+    color: '#7C3AED', // Purple primary
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -1458,12 +1458,12 @@ const styles = StyleSheet.create({
   },
   assetItem: {
     width: 120,
-    backgroundColor: '#FEFBF6',
+    backgroundColor: '#F8F5FF', // Light purple background
     borderRadius: 20,
     padding: 16,
     marginHorizontal: 8,
     alignItems: 'center',
-    shadowColor: '#5D4037',
+    shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -1471,12 +1471,12 @@ const styles = StyleSheet.create({
   },
   liabilityItem: {
     width: 120,
-    backgroundColor: '#FEFBF6',
+    backgroundColor: '#F8F5FF', // Light purple background
     borderRadius: 20,
     padding: 16,
     marginHorizontal: 8,
     alignItems: 'center',
-    shadowColor: '#5D4037',
+    shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -1486,7 +1486,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F0A07B',
+    backgroundColor: '#A855F7', // Purple accent
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -1495,7 +1495,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FFCC80',
+    backgroundColor: '#C4B5FD', // Medium purple
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -1508,14 +1508,14 @@ const styles = StyleSheet.create({
   },
   assetItemLabel: {
     fontSize: 12,
-    color: '#A1887F',
+    color: '#8B5CF6', // Purple muted
     fontWeight: '500',
     marginBottom: 6,
     textAlign: 'center',
   },
   liabilityItemLabel: {
     fontSize: 12,
-    color: '#A1887F',
+    color: '#8B5CF6', // Purple muted
     fontWeight: '500',
     marginBottom: 6,
     textAlign: 'center',
@@ -1523,13 +1523,13 @@ const styles = StyleSheet.create({
   assetItemAmount: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#5D4037',
+    color: '#7C3AED', // Purple primary
     textAlign: 'center',
   },
   liabilityItemAmount: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#5D4037',
+    color: '#7C3AED', // Purple primary
     textAlign: 'center',
   },
   section: {
@@ -1548,11 +1548,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#5D4037',
+    color: '#7C3AED', // Purple primary
   },
   viewAllText: {
     fontSize: 14,
-    color: '#D32F2F',
+    color: '#A855F7', // Purple accent
     fontWeight: '600',
   },
   periodButton: {
@@ -1560,9 +1560,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#FEFBF6',
+    backgroundColor: '#F8F5FF', // Light purple background
     borderRadius: 20,
-    shadowColor: '#5D4037',
+    shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1570,13 +1570,13 @@ const styles = StyleSheet.create({
   },
   periodButtonText: {
     fontSize: 14,
-    color: '#A1887F',
+    color: '#8B5CF6', // Purple muted
     marginRight: 4,
     fontWeight: '500',
   },
   chevronDown: {
     fontSize: 12,
-    color: '#A1887F',
+    color: '#8B5CF6', // Purple muted
   },
   chartContainer: {
     backgroundColor: '#FFFFFF',
@@ -1849,11 +1849,11 @@ const styles = StyleSheet.create({
   },
   chartTabs: {
     flexDirection: 'row',
-    backgroundColor: '#F0A07B',
+    backgroundColor: '#A855F7', // Purple accent
     borderRadius: 20,
     padding: 6,
     marginBottom: 20,
-    shadowColor: '#5D4037',
+    shadowColor: '#7C3AED',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1867,8 +1867,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeChartTab: {
-    backgroundColor: '#FEFBF6',
-    shadowColor: '#5D4037',
+    backgroundColor: '#F8F5FF', // Light purple background
+    shadowColor: '#7C3AED',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -1880,16 +1880,16 @@ const styles = StyleSheet.create({
   chartTabText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FEFBF6',
+    color: '#F8F5FF', // Light purple text
   },
   activeChartTabText: {
-    color: '#5D4037',
+    color: '#7C3AED', // Purple primary
   },
   chartCard: {
-    backgroundColor: '#FEFBF6',
+    backgroundColor: '#F8F5FF', // Light purple background
     borderRadius: 20,
     padding: 24,
-    shadowColor: '#5D4037',
+    shadowColor: '#7C3AED',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -1988,7 +1988,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   emptyStateButton: {
-    backgroundColor: '#667EEA',
+    backgroundColor: '#7C3AED', // Purple primary
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,

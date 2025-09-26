@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text, View, RefreshControl } from 'react-native';
+import { Dimensions, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -58,7 +58,7 @@ export function PlanningSurface({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EAD9C9',
+    backgroundColor: '#EDE9FE', // Light purple background
   },
   pageContent: {
     flex: 1,
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   heroTitle: {
-    color: '#002E52',
+    color: '#7C3AED', // Purple primary
     textAlign: 'left',
     fontFamily: 'SourceSansPro-Bold',
     fontSize: 25,
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     lineHeight: 30,
   },
   heroSubtitle: {
-    color: '#000000',
+    color: '#5B21B6', // Dark purple for contrast
     textAlign: 'left',
     fontFamily: 'SourceSansPro-Regular',
     fontSize: 16,
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   heroAmount: {
-    color: '#002E52',
+    color: '#7C3AED', // Purple primary
     textAlign: 'left',
     fontFamily: 'SourceSansPro-Bold',
     fontSize: 25,
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   card: {
-    backgroundColor: '#ECE0D6',
+    backgroundColor: '#F3F0FF', // Very light purple
     borderRadius: 50,
     paddingTop: 24,
     paddingHorizontal: 20,
